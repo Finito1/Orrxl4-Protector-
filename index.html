@@ -1,38 +1,128 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <title>ORRXL4 Generator</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ORRXL4 PROTECTOR</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #00aaff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 150px;
+      background: #111;
+      border: 1px solid #00aaff;
+      color: #00aaff;
+      padding: 10px;
+      border-radius: 8px;
+      resize: none;
+    }
+
+    input[type="file"] {
+      margin-top: 15px;
+      color: white;
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #00aaff;
+      border: none;
+      border-radius: 8px;
+      color: black;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0088cc;
+    }
+
+    .result {
+      margin-top: 20px;
+      word-break: break-all;
+      font-size: 14px;
+    }
+
+    a {
+      color: #00ffcc;
+    }
+  </style>
 </head>
-<body style="background:black;color:#00aaff;font-family:Arial;text-align:center;padding-top:50px;">
+<body>
 
-  <h1>ORRXL4 Generator 🔒</h1>
+  <div class="container">
+    <h1>ORRXL4 PROTECTOR 🔒</h1>
 
-  <input type="file" id="fileInput" />
-  <br><br>
-  <button onclick="generate()">Generar</button>
+    <textarea id="textInput" placeholder="Pega tu script aquí..."></textarea>
+
+    <input type="file" id="fileInput" accept=".txt,.lua,.js,.py">
+
+    <button onclick="generate()">GENERAR RAW</button>
+
+    <div class="result" id="result"></div>
+  </div>
 
   <script>
     async function generate() {
-      const file = document.getElementById("fileInput").files[0];
+      const textArea = document.getElementById("textInput");
+      const fileInput = document.getElementById("fileInput");
+      const resultDiv = document.getElementById("result");
 
-      if (!file) {
-        alert("Sube un archivo primero");
+      let content = textArea.value;
+
+      if (!content && fileInput.files.length > 0) {
+        content = await fileInput.files[0].text();
+      }
+
+      if (!content) {
+        alert("Pon texto o sube un archivo");
         return;
       }
 
-      const text = await file.text();
+      resultDiv.innerHTML = "Generando...";
 
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ content: text })
+        body: JSON.stringify({ content })
       });
 
       const data = await response.json();
 
-      alert("Raw generado: " + data.url);
+      if (!response.ok) {
+        resultDiv.innerHTML = "Error al generar.";
+        return;
+      }
+
+      resultDiv.innerHTML = `
+        ✅ RAW generado:<br>
+        <a href="${data.raw}" target="_blank">${data.raw}</a>
+      `;
     }
   </script>
 
