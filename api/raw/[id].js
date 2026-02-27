@@ -1,3 +1,6 @@
+export const config = {
+  runtime: "nodejs",
+};
 import { storage } from "../storage";
 
 export default function handler(req, res) {
