@@ -14,13 +14,14 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
     }
 
     .container {
       width: 90%;
       max-width: 500px;
       text-align: center;
+      padding: 20px 0;
     }
 
     h1 {
@@ -36,11 +37,13 @@
       padding: 10px;
       border-radius: 8px;
       resize: none;
+      box-sizing: border-box;
     }
 
     input[type="file"] {
       margin-top: 15px;
       color: white;
+      width: 100%;
     }
 
     button {
@@ -54,6 +57,7 @@
       font-weight: bold;
       font-size: 16px;
       cursor: pointer;
+      transition: 0.2s;
     }
 
     button:hover {
@@ -61,13 +65,35 @@
     }
 
     .result {
-      margin-top: 20px;
+      margin-top: 25px;
       word-break: break-all;
       font-size: 14px;
     }
 
+    .box {
+      background: #111;
+      border: 1px solid #00aaff;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+
     a {
       color: #00ffcc;
+      text-decoration: none;
+    }
+
+    .copyBtn {
+      margin-top: 10px;
+      background: #00ffcc;
+    }
+
+    .success {
+      margin-top: 10px;
+      color: #00ffcc;
+      font-size: 13px;
     }
   </style>
 </head>
@@ -104,25 +130,54 @@
 
       resultDiv.innerHTML = "Generando...";
 
-      const response = await fetch("/api/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ content })
-      });
+      try {
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ content })
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        resultDiv.innerHTML = "Error al generar.";
-        return;
+        if (!response.ok) {
+          resultDiv.innerHTML = "❌ Error al generar.";
+          return;
+        }
+
+        const rawUrl = data.raw;
+        const loadingString = `loadstring(game:HttpGet("${rawUrl}"))()`;
+
+        resultDiv.innerHTML = `
+          <div>
+            ✅ <b>RAW generado:</b><br>
+            <a href="${rawUrl}" target="_blank">${rawUrl}</a>
+          </div>
+
+          <div style="margin-top:20px;">
+            🔥 <b>LoadingString:</b>
+            <div class="box" id="loadingBox">${loadingString}</div>
+            <button class="copyBtn" onclick="copyLoading()">COPIAR</button>
+            <div class="success" id="copyMsg"></div>
+          </div>
+        `;
+
+      } catch (err) {
+        resultDiv.innerHTML = "❌ Error de conexión.";
       }
+    }
 
-      resultDiv.innerHTML = `
-        ✅ RAW generado:<br>
-        <a href="${data.raw}" target="_blank">${data.raw}</a>
-      `;
+    function copyLoading() {
+      const text = document.getElementById("loadingBox").innerText;
+      navigator.clipboard.writeText(text);
+
+      const msg = document.getElementById("copyMsg");
+      msg.innerText = "✔ Copiado al portapapeles";
+      
+      setTimeout(() => {
+        msg.innerText = "";
+      }, 2000);
     }
   </script>
 
