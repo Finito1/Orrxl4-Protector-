@@ -58,15 +58,26 @@ function generate() {
   }
 
   const id = Math.random().toString(36).substring(2,8);
-
   const fileName = `storage/${id}.txt`;
 
+  const usuario = "TUUSUARIO";   // 👈 CAMBIA ESTO
+  const repo = "TUREPO";         // 👈 CAMBIA ESTO
+
+  const rawLink = `https://raw.githubusercontent.com/${usuario}/${repo}/main/${fileName}`;
+
   document.getElementById("result").innerHTML = `
-    <p>📁 Crea un archivo con este nombre en tu repo:</p>
+    <p>📁 Crea este archivo en tu repo:</p>
     <b>${fileName}</b>
+
     <p>📋 Pega dentro el texto que escribiste.</p>
-    <p>🔗 Luego tu raw será:</p>
-    <b>https://raw.githubusercontent.com/TUUSUARIO/TUREPO/main/${fileName}</b>
+
+    <p>🔗 RAW:</p>
+    <b>${rawLink}</b>
+
+    <p>⚡ Loadstring:</p>
+    <textarea style="width:100%;height:60px;background:#111;color:white;border:none;padding:10px;">
+loadstring(game:HttpGet("${rawLink}"))()
+    </textarea>
   `;
 }
 </script>
