@@ -1,89 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ORRXL4 GENERATOR</title>
-
-<style>
-body {
-  background: black;
-  color: white;
-  text-align: center;
-  padding: 40px;
-  font-family: Arial;
-}
-textarea {
-  width: 90%;
-  height: 200px;
-  background: #111;
-  color: white;
-  border: none;
-  padding: 10px;
-}
-button {
-  padding: 10px 20px;
-  margin-top: 20px;
-  background: #0078ff;
-  border: none;
-  color: white;
-}
-.result-box {
-  margin-top: 20px;
-}
-</style>
+  <title>ORRXL4 Generator</title>
 </head>
-<body>
+<body style="background:black;color:#00aaff;font-family:Arial;text-align:center;padding-top:50px;">
 
-<h1>ORRXL4 GENERATOR 🔥</h1>
+  <h1>ORRXL4 Generator 🔒</h1>
 
-<input type="file" id="fileInput" accept=".txt,.lua"><br><br>
+  <input type="file" id="fileInput" />
+  <br><br>
+  <button onclick="generate()">Generar</button>
 
-<textarea id="textInput" placeholder="Escribe o sube tu texto aquí..."></textarea><br>
+  <script>
+    async function generate() {
+      const file = document.getElementById("fileInput").files[0];
 
-<button onclick="generate()">Generar</button>
+      if (!file) {
+        alert("Sube un archivo primero");
+        return;
+      }
 
-<div id="result" class="result-box"></div>
+      const text = await file.text();
 
-<script>
-document.getElementById("fileInput").addEventListener("change", function(event) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById("textInput").value = e.target.result;
-  };
-  reader.readAsText(event.target.files[0]);
-});
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ content: text })
+      });
 
-async function generate() {
-  const text = document.getElementById("textInput").value;
+      const data = await response.json();
 
-  if (!text) {
-    alert("Pon texto primero");
-    return;
-  }
-
-  const res = await fetch("/api/generate", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ code: text })
-  });
-
-  const data = await res.json();
-
-  const fullRaw = window.location.origin + data.raw;
-
-  document.getElementById("result").innerHTML = `
-    <p>🔗 RAW:</p>
-    <b>${fullRaw}</b>
-
-    <p>⚡ Loadstring:</p>
-    <textarea style="width:100%;height:60px;background:#111;color:white;border:none;padding:10px;">
-loadstring(game:HttpGet("${fullRaw}"))()
-    </textarea>
-  `;
-}
-</script>
+      alert("Raw generado: " + data.url);
+    }
+  </script>
 
 </body>
 </html>
