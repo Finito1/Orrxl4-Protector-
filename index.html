@@ -1,9 +1,74 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mi Proyecto Nuevo</title>
+  <title>ORRXL4 GENERATOR</title>
+  <style>
+    body {
+      background: black;
+      color: white;
+      text-align: center;
+      padding: 40px;
+      font-family: Arial;
+    }
+    textarea {
+      width: 90%;
+      height: 200px;
+      background: #111;
+      color: white;
+      border: none;
+      padding: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      margin-top: 20px;
+      background: #0078ff;
+      border: none;
+      color: white;
+    }
+  </style>
 </head>
-<body style="background:black; color:white; text-align:center; margin-top:100px;">
-  <h1>Proyecto nuevo 🔥</h1>
+<body>
+
+<h1>ORRXL4 GENERATOR 🔥</h1>
+
+<input type="file" id="fileInput"><br><br>
+
+<textarea id="textInput" placeholder="Escribe o sube tu texto aquí..."></textarea><br>
+
+<button onclick="generate()">Generar</button>
+
+<div id="result"></div>
+
+<script>
+document.getElementById("fileInput").addEventListener("change", function(event) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById("textInput").value = e.target.result;
+  };
+  reader.readAsText(event.target.files[0]);
+});
+
+function generate() {
+  const text = document.getElementById("textInput").value;
+
+  if (!text) {
+    alert("Pon texto primero");
+    return;
+  }
+
+  const id = Math.random().toString(36).substring(2,8);
+
+  const fileName = `storage/${id}.txt`;
+
+  document.getElementById("result").innerHTML = `
+    <p>📁 Crea un archivo con este nombre en tu repo:</p>
+    <b>${fileName}</b>
+    <p>📋 Pega dentro el texto que escribiste.</p>
+    <p>🔗 Luego tu raw será:</p>
+    <b>https://raw.githubusercontent.com/TUUSUARIO/TUREPO/main/${fileName}</b>
+  `;
+}
+</script>
+
 </body>
 </html>
