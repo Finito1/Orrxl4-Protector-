@@ -2,31 +2,35 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ORRXL4 GENERATOR</title>
-  <style>
-    body {
-      background: black;
-      color: white;
-      text-align: center;
-      padding: 40px;
-      font-family: Arial;
-    }
-    textarea {
-      width: 90%;
-      height: 200px;
-      background: #111;
-      color: white;
-      border: none;
-      padding: 10px;
-    }
-    button {
-      padding: 10px 20px;
-      margin-top: 20px;
-      background: #0078ff;
-      border: none;
-      color: white;
-    }
-  </style>
+<title>ORRXL4 GENERATOR</title>
+
+<style>
+body {
+  background: black;
+  color: white;
+  text-align: center;
+  padding: 40px;
+  font-family: Arial;
+}
+textarea {
+  width: 90%;
+  height: 200px;
+  background: #111;
+  color: white;
+  border: none;
+  padding: 10px;
+}
+button {
+  padding: 10px 20px;
+  margin-top: 20px;
+  background: #0078ff;
+  border: none;
+  color: white;
+}
+.result-box {
+  margin-top: 20px;
+}
+</style>
 </head>
 <body>
 
@@ -38,7 +42,7 @@
 
 <button onclick="generate()">Generar</button>
 
-<div id="result"></div>
+<div id="result" class="result-box"></div>
 
 <script>
 document.getElementById("fileInput").addEventListener("change", function(event) {
@@ -62,7 +66,7 @@ async function generate() {
     headers: {
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({ text })
+    body: JSON.stringify({ code: text })
   });
 
   const data = await res.json();
