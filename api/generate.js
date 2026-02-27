@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     return res.status(500).send(error);
   }
 
-  const rawUrl = `https://raw.githubusercontent.com/TU_USUARIO/TU_REPO/main/raw-files/${fileName}`;
+  const rawUrl = `https://raw.githubusercontent.com/Finito1/Orrxl4-Protector-/main/raw-files/${fileName}`;
 
   res.status(200).json({ raw: rawUrl });
 }
