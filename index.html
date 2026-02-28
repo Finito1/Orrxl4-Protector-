@@ -148,11 +148,11 @@
 
   <!-- MAIN CONTENT -->
   <div class="container" id="mainContent">
-    <h2>Generador RAW</h2>
+    <h2>ORRXL4 PROTECTOR 🔒</h2>
 
     <textarea id="textInput" placeholder="Pega tu script aquí..."></textarea>
     <input type="file" id="fileInput" accept=".txt,.lua,.js,.py">
-    <button onclick="generate()">GENERAR RAW</button>
+    <button onclick="generate()">GENERATE LOADSTRING</button>
 
     <div class="result" id="result"></div>
   </div>
@@ -176,11 +176,11 @@
       }
 
       if (!content) {
-        alert("Pon texto o sube un archivo");
+        alert("Write your Lua script or upload a text file");
         return;
       }
 
-      resultDiv.innerHTML = "Generando...";
+      resultDiv.innerHTML = "Generating...";
 
       try {
         const response = await fetch("/api/generate", {
@@ -192,7 +192,7 @@
         const data = await response.json();
 
         if (!response.ok) {
-          resultDiv.innerHTML = "❌ Error al generar.";
+          resultDiv.innerHTML = "❌ Error generating";
           return;
         }
 
@@ -201,20 +201,20 @@
 
         resultDiv.innerHTML = `
           <div>
-            ✅ <b>RAW generado:</b><br>
+            ✅ <b>Loadstring generated!:</b><br>
             <a href="${rawUrl}" target="_blank">${rawUrl}</a>
           </div>
 
           <div style="margin-top:20px;">
             🔥 <b>LoadingString:</b>
             <div class="box" id="loadingBox">${loadingString}</div>
-            <button class="copyBtn" onclick="copyLoading()">COPIAR</button>
+            <button class="copyBtn" onclick="copyLoading()">COPY</button>
             <div class="success" id="copyMsg"></div>
           </div>
         `;
 
       } catch (err) {
-        resultDiv.innerHTML = "❌ Error de conexión.";
+        resultDiv.innerHTML = "❌ Connection error";
       }
     }
 
@@ -223,7 +223,7 @@
       navigator.clipboard.writeText(text);
 
       const msg = document.getElementById("copyMsg");
-      msg.innerText = "✔ Copiado al portapapeles";
+      msg.innerText = "✔ Copied to clipboard";
       setTimeout(() => { msg.innerText = ""; }, 2000);
     }
   </script>
