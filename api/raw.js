@@ -3,8 +3,14 @@ export default async function handler(req, res) {
     const userAgent = req.headers["user-agent"] || "";
     const isRoblox = userAgent.toLowerCase().includes("roblox");
 
+    const { id } = req.query;
+
+    if (!id) {
+      return res.status(400).send("-- Missing Script ID --");
+    }
+
     // =========================
-    // PANTALLA VISUAL PROTECTORA
+    // PANTALLA VISUAL (NO ROBLOX)
     // =========================
     if (!isRoblox) {
       res.setHeader("Content-Type", "text/html");
@@ -75,34 +81,27 @@ export default async function handler(req, res) {
     // PARTE ROBLOX (DEVUELVE SCRIPT REAL)
     // =========================
 
-    const { i } = req.query;
+    const githubResponse = await fetch(
+      `https://api.github.com/repos/Finito1/Orrxl4-Protector-/contents/raw-files/${id}.txt`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+          Accept: "application/vnd.github.v3.raw",
+        },
+      }
+    );
 
-    if (!i) {
-      return res.status(400).send("-- Missing Script ID --");
-    }
-
-    // ⚠️ AQUI debes reemplazar esto con tu base de datos real
-    const scriptData = await getScriptById(i);
-
-    if (!scriptData || !scriptData.content) {
+    if (!githubResponse.ok) {
       return res.status(404).send("-- Script Not Found --");
     }
 
+    const script = await githubResponse.text();
+
     res.setHeader("Content-Type", "text/plain");
-    return res.status(200).send(scriptData.content);
+    return res.status(200).send(script);
 
   } catch (error) {
     console.error("RAW ERROR:", error);
     return res.status(500).send("-- Internal Server Error --");
   }
-}
-
-
-// =========================
-// EJEMPLO DE FUNCIÓN (CAMBIA ESTO)
-// =========================
-async function getScriptById(id) {
-  // ⚠️ REEMPLAZA ESTO por tu lógica real (KV, DB, etc)
-
-  return null; 
 }
