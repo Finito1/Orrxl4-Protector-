@@ -7,10 +7,9 @@ export default async function handler(req, res) {
 
   const userAgent = req.headers["user-agent"] || "";
 
-  // 🔒 Si NO es Roblox → mostrar pantalla visual
+  // 🔵 SI NO ES ROBLOX → MOSTRAR PANTALLA AZUL
   if (!userAgent.toLowerCase().includes("roblox")) {
     res.setHeader("Content-Type", "text/html");
-
     return res.status(200).send(`
       <html>
         <head>
@@ -18,23 +17,67 @@ export default async function handler(req, res) {
           <style>
             body {
               margin: 0;
-              background: black;
+              background: #000814;
               display: flex;
               justify-content: center;
               align-items: center;
               height: 100vh;
               flex-direction: column;
               font-family: Arial, sans-serif;
+              text-align: center;
+              color: #00aaff;
             }
-
-            .title {
-              color: #1e90ff;
-              font-size: 48px;
+            h1 {
+              font-size: 42px;
+              margin-bottom: 10px;
+            }
+            p {
+              font-size: 18px;
+              margin: 5px 0;
+            }
+            a {
+              color: #00ffff;
+              text-decoration: none;
               font-weight: bold;
             }
+            a:hover {
+              text-decoration: underline;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>🔒 ORRXL4 PROTECTOR</h1>
+          <p>THIS SCRIPT WAS PROTECTED BY ORRXL4 PROTECTOR</p>
+          <p>
+            <a href="https://orrxl4-protector.vercel.app/" target="_blank">
+              https://orrxl4-protector.vercel.app/
+            </a>
+          </p>
+        </body>
+      </html>
+    `);
+  }
 
-            .link {
-              margin-top: 20px;
+  // 🔓 SI ES ROBLOX → OBTENER SCRIPT DESDE GITHUB
+  const githubResponse = await fetch(
+    `https://api.github.com/repos/Finito1/Orrxl4-Protector-/contents/raw-files/${id}.txt`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+        Accept: "application/vnd.github.v3.raw",
+      },
+    }
+  );
+
+  if (!githubResponse.ok) {
+    return res.status(404).send("Script not found");
+  }
+
+  const script = await githubResponse.text();
+
+  res.setHeader("Content-Type", "text/plain");
+  res.status(200).send(script);
+}              margin-top: 20px;
               color: white;
               font-size: 18px;
               text-decoration: none;
