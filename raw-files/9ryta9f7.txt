@@ -1,0 +1,600 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Configuration
+local Config = {
+    SpeedBoostEnabled = false,
+    SpeedBoost = 50,
+    SpeedBoostKey = Enum.KeyCode.Q,
+    
+    AntiRagdollEnabled = false,
+    
+    SpinbotEnabled = false,
+    SpinSpeed = 10,
+    SpinbotKey = Enum.KeyCode.N,
+    
+    SpamBat = false,
+    SpamBatKey = Enum.KeyCode.V,
+    AutoSteal = false,
+    
+    StealingBoostEnabled = false,
+    StealingBoost = 29,
+    StealingBoostKey = Enum.KeyCode.E,
+    
+    Unwalk = false,
+    FPSBoostEnabled = false,
+    
+    JumpBoostEnabled = false,
+    JumpPower = 50,
+    
+    GravityEnabled = false,
+    GravityIndex = 1,
+    
+    GalaxySky = false,
+    
+    AutoRight = false,
+    AutoRightKey = Enum.KeyCode.R,
+    AutoLeft = false,
+    AutoLeftKey = Enum.KeyCode.F,
+}
+
+-- Variables
+local IsListeningForKey = false
+local CurrentKeybindSetting = nil
+local CurrentKeybindButton = nil
+
+local SpinConnection = nil
+local SpamBatConnection = nil
+local BrainrotDetectionConnection = nil
+local HasBrainrotInHand = false
+local UnwalkConnection = nil
+local GalaxySkyColorCorrection = nil
+local ScreenGui = nil
+
+-- Variables FPS Boost
+local originalLighting = {
+    GlobalShadows = Lighting.GlobalShadows,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd,
+    Technology = Lighting.Technology
+}
+
+local savedParts = {}
+local savedEffects = {}
+
+-- Variables neige
+local SnowParticles = {}
+local SnowEnabled = true
+
+-- Variables ESP
+local ScriptUsersWithBillboard = {}
+local ESPEnabled = true
+
+-- ANIMATIONS POUR LES TOGGLES
+local function ToggleAnimation(button, circle, state)
+    if state then
+        TweenService:Create(circle, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = UDim2.new(1, -19, 0.5, -8),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+        TweenService:Create(button, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            BackgroundColor3 = Color3.fromRGB(150, 100, 255)
+        }):Play()
+    else
+        TweenService:Create(circle, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            Position = UDim2.new(0, 3, 0.5, -8),
+            BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+        }):Play()
+        TweenService:Create(button, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+            BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        }):Play()
+    end
+end
+
+-- FONCTIONS DE BASE
+local function GetCharacter()
+    return LocalPlayer.Character
+end
+
+local function GetHumanoid()
+    local char = GetCharacter()
+    return char and char:FindFirstChildOfClass("Humanoid")
+end
+
+local function GetRootPart()
+    local char = GetCharacter()
+    return char and char:FindFirstChild("HumanoidRootPart")
+end
+
+-- FONCTION POUR LE SPEED BOOST
+local function ApplySpeedBoost(speedValue)
+    local char = GetCharacter()
+    if not char then return end
+    
+    local humanoid = GetHumanoid()
+    local rootPart = GetRootPart()
+    
+    if not humanoid or not rootPart then return false end
+    
+    if humanoid.MoveDirection.Magnitude > 0.1 then
+        local moveDirectionUnit = humanoid.MoveDirection.Unit
+        if moveDirectionUnit.Magnitude > 0 then
+            local calc_X = moveDirectionUnit.X * speedValue
+            local calc_Z = moveDirectionUnit.Z * speedValue
+            rootPart.AssemblyLinearVelocity = Vector3.new(calc_X, rootPart.AssemblyLinearVelocity.Y, calc_Z)
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- SPEED BOOST NORMAL
+local SpeedBoostConnection = nil
+
+local function StartSpeedBoost()
+    if SpeedBoostConnection then
+        SpeedBoostConnection:Disconnect()
+    end
+    
+    SpeedBoostConnection = RunService.Heartbeat:Connect(function()
+        if not Config.SpeedBoostEnabled then return end
+        if HasBrainrotInHand then return end
+        ApplySpeedBoost(Config.SpeedBoost)
+    end)
+end
+
+local function StopSpeedBoost()
+    if SpeedBoostConnection then
+        SpeedBoostConnection:Disconnect()
+        SpeedBoostConnection = nil
+    end
+end
+
+-- STEALING BOOST
+local StealingBoostConnection = nil
+
+local function StartStealingBoost()
+    if StealingBoostConnection then
+        StealingBoostConnection:Disconnect()
+    end
+    
+    StealingBoostConnection = RunService.Heartbeat:Connect(function()
+        if not Config.StealingBoostEnabled then return end
+        ApplySpeedBoost(Config.StealingBoost)
+    end)
+end
+
+local function StopStealingBoost()
+    if StealingBoostConnection then
+        StealingBoostConnection:Disconnect()
+        StealingBoostConnection = nil
+    end
+end
+
+-- AUTO STEAL GUI
+local AutoStealGUI = nil
+local AutoStealGUIVisible = false
+
+local function Create44SAutoStealGUI()
+    if AutoStealGUI then return AutoStealGUI end
+    
+    local Packages = game:GetService("ReplicatedStorage"):WaitForChild("Packages")
+    local Datas = game:GetService("ReplicatedStorage"):WaitForChild("Datas")
+    local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+    local Utils = game:GetService("ReplicatedStorage"):WaitForChild("Utils")
+    
+    local Synchronizer = require(Packages:WaitForChild("Synchronizer"))
+    local AnimalsData = require(Datas:WaitForChild("Animals"))
+    local AnimalsShared = require(Shared:WaitForChild("Animals"))
+    local NumberUtils = require(Utils:WaitForChild("NumberUtils"))
+    
+    local selectedTargetIndex = 1
+    local allAnimalsCache = {}
+    local InternalStealCache = {}
+    local PromptMemoryCache = {}
+    local plotChannels = {}
+    local lastAnimalData = {}
+    local scannerConnections = {}
+    
+    -- Helper functions
+    local function isMyBaseAnimal(animalData)
+        if not animalData or not animalData.plot then return false end
+        local plots = workspace:FindFirstChild("Plots")
+        if not plots then return false end
+        local plot = plots:FindFirstChild(animalData.plot)
+        if not plot then return false end
+        
+        local channel = Synchronizer:Get(plot.Name)
+        if channel then
+            local owner = channel:Get("Owner")
+            if owner then
+                if typeof(owner) == "Instance" and owner:IsA("Player") then
+                    return owner.UserId == LocalPlayer.UserId
+                elseif typeof(owner) == "table" and owner.UserId then
+                    return owner.UserId == LocalPlayer.UserId
+                elseif typeof(owner) == "Instance" then
+                    return owner == LocalPlayer
+                end
+            end
+        end
+        
+        local sign = plot:FindFirstChild("PlotSign")
+        if sign then
+            local yourBase = sign:FindFirstChild("YourBase")
+            if yourBase and yourBase:IsA("BillboardGui") then
+                return yourBase.Enabled == true
+            end
+        end
+        return false
+    end
+    
+    local function get_top_3_pets()
+        local topPets = {}
+        for _, animalData in ipairs(allAnimalsCache) do
+            if not isMyBaseAnimal(animalData) then
+                table.insert(topPets, {
+                    petName = animalData.name,
+                    mpsText = animalData.genText,
+                    mpsValue = animalData.genValue,
+                    owner = animalData.owner,
+                    plot = animalData.plot,
+                    slot = animalData.slot,
+                    uid = animalData.uid,
+                    mutation = animalData.mutation,
+                    animalData = animalData
+                })
+            end
+            if #topPets >= 3 then break end
+        end
+        return topPets
+    end
+    
+    local function findProximityPromptForAnimal(animalData)
+        if not animalData then return nil end
+        local cachedPrompt = PromptMemoryCache[animalData.uid]
+        if cachedPrompt and cachedPrompt.Parent then return cachedPrompt end
+        
+        local plot = workspace.Plots:FindFirstChild(animalData.plot)
+        if not plot then return nil end
+        local podiums = plot:FindFirstChild("AnimalPodiums")
+        if not podiums then return nil end
+        local podium = podiums:FindFirstChild(animalData.slot)
+        if not podium then return nil end
+        local base = podium:FindFirstChild("Base")
+        if not base then return nil end
+        local spawn = base:FindFirstChild("Spawn")
+        if not spawn then return nil end
+        local attach = spawn:FindFirstChild("PromptAttachment")
+        if not attach then return nil end
+        
+        for _, p in ipairs(attach:GetChildren()) do
+            if p:IsA("ProximityPrompt") then
+                PromptMemoryCache[animalData.uid] = p
+                return p
+            end
+        end
+        return nil
+    end
+    
+    local function buildStealCallbacks(prompt)
+        if InternalStealCache[prompt] then return end
+        local data = {holdCallbacks = {}, triggerCallbacks = {}, ready = true}
+        
+        local ok1, conns1 = pcall(getconnections, prompt.PromptButtonHoldBegan)
+        if ok1 and type(conns1) == "table" then
+            for _, conn in ipairs(conns1) do
+                if type(conn.Function) == "function" then
+                    table.insert(data.holdCallbacks, conn.Function)
+                end
+            end
+        end
+        
+        local ok2, conns2 = pcall(getconnections, prompt.Triggered)
+        if ok2 and type(conns2) == "table" then
+            for _, conn in ipairs(conns2) do
+                if type(conn.Function) == "function" then
+                    table.insert(data.triggerCallbacks, conn.Function)
+                end
+            end
+        end
+        
+        if (#data.holdCallbacks > 0) or (#data.triggerCallbacks > 0) then
+            InternalStealCache[prompt] = data
+        end
+    end
+    
+    local function runCallbackList(list)
+        for _, fn in ipairs(list) do
+            task.spawn(fn)
+        end
+    end
+    
+    local function executeInternalStealAsync(prompt)
+        local data = InternalStealCache[prompt]
+        if not data or not data.ready then return false end
+        data.ready = false
+        
+        task.spawn(function()
+            if #data.holdCallbacks > 0 then runCallbackList(data.holdCallbacks) end
+            task.wait(1.42)
+            if #data.triggerCallbacks > 0 then runCallbackList(data.triggerCallbacks) end
+            task.wait()
+            data.ready = true
+        end)
+        return true
+    end
+    
+    local function attemptSteal(prompt)
+        if not prompt or not prompt.Parent then return false end
+        buildStealCallbacks(prompt)
+        if not InternalStealCache[prompt] then return false end
+        return executeInternalStealAsync(prompt)
+    end
+    
+    local function prebuildStealCallbacks()
+        for uid, prompt in pairs(PromptMemoryCache) do
+            if prompt and prompt.Parent then
+                buildStealCallbacks(prompt)
+            end
+        end
+    end
+    
+    task.spawn(function()
+        while task.wait(2) do
+            if Config.AutoSteal then
+                prebuildStealCallbacks()
+            end
+        end
+    end)
+    
+    -- Scanner system
+    local function getAnimalHash(animalList)
+        if not animalList then return "" end
+        local hash = ""
+        for slot, data in pairs(animalList) do
+            if type(data) == "table" then
+                hash = hash .. tostring(slot) .. tostring(data.Index) .. tostring(data.Mutation)
+            end
+        end
+        return hash
+    end
+    
+    local function scanSinglePlot(plot)
+        pcall(function()
+            local plotUID = plot.Name
+            local channel = Synchronizer:Get(plotUID)
+            if not channel then return end
+            
+            local animalList = channel:Get("AnimalList")
+            local currentHash = getAnimalHash(animalList)
+            if lastAnimalData[plotUID] == currentHash then return end
+            lastAnimalData[plotUID] = currentHash
+            
+            for i = #allAnimalsCache, 1, -1 do
+                if allAnimalsCache[i].plot == plot.Name then
+                    table.remove(allAnimalsCache, i)
+                end
+            end
+            
+            local owner = channel:Get("Owner")
+            if not owner or not Players:FindFirstChild(owner.Name) then
+                for i = #allAnimalsCache, 1, -1 do
+                    if allAnimalsCache[i].plot == plot.Name then
+                        table.remove(allAnimalsCache, i)
+                    end
+                end
+                return
+            end
+            
+            local ownerName = owner and owner.Name or "Unknown"
+            if not animalList then return end
+            
+            for slot, animalData in pairs(animalList) do
+                if type(animalData) == "table" then
+                    local animalName = animalData.Index
+                    local animalInfo = AnimalsData[animalName]
+                    if animalInfo then
+                        local mutation = animalData.Mutation or "None"
+                        local traits = (animalData.Traits and #animalData.Traits > 0) and table.concat(animalData.Traits, ", ") or "None"
+                        local genValue = AnimalsShared:GetGeneration(animalName, animalData.Mutation, animalData.Traits, nil)
+                        local genText = "$" .. NumberUtils:ToString(genValue) .. "/s"
+                        
+                        table.insert(allAnimalsCache, {
+                            name = animalInfo.DisplayName or animalName,
+                            genText = genText,
+                            genValue = genValue,
+                            mutation = mutation,
+                            traits = traits,
+                            owner = ownerName,
+                            plot = plot.Name,
+                            slot = tostring(slot),
+                            uid = plot.Name .. "_" .. tostring(slot),
+                        })
+                    end
+                end
+            end
+            
+            table.sort(allAnimalsCache, function(a, b)
+                return a.genValue > b.genValue
+            end)
+        end)
+    end
+    
+    local function setupPlotListener(plot)
+        if plotChannels[plot.Name] then return end
+        
+        local channel
+        local retries = 0
+        local maxRetries = 10
+        
+        while not channel and retries < maxRetries do
+            local success, result = pcall(function()
+                return Synchronizer:Get(plot.Name)
+            end)
+            if success and result then
+                channel = result
+                break
+            else
+                retries = retries + 1
+                if retries < maxRetries then
+                    task.wait(0.5)
+                end
+            end
+        end
+        
+        if not channel then return end
+        plotChannels[plot.Name] = true
+        
+        scanSinglePlot(plot)
+        
+        local c1 = plot.DescendantAdded:Connect(function()
+            task.wait(0.1)
+            scanSinglePlot(plot)
+        end)
+        table.insert(scannerConnections, c1)
+        
+        local c2 = plot.DescendantRemoving:Connect(function()
+            task.wait(0.1)
+            scanSinglePlot(plot)
+        end)
+        table.insert(scannerConnections, c2)
+        
+        local c3 = task.spawn(function()
+            while plot.Parent and plotChannels[plot.Name] do
+                task.wait(5)
+                scanSinglePlot(plot)
+            end
+        end)
+        table.insert(scannerConnections, c3)
+    end
+    
+    local function initializePlotScanner()
+        local plots = workspace:WaitForChild("Plots", 8)
+        if not plots then
+            warn("Plots folder not found!")
+            return
+        end
+        
+        for _, plot in ipairs(plots:GetChildren()) do
+            setupPlotListener(plot)
+        end
+        
+        local newPlotConnection = plots.ChildAdded:Connect(function(plot)
+            task.wait(0.5)
+            setupPlotListener(plot)
+        end)
+        table.insert(scannerConnections, newPlotConnection)
+        
+        local removedPlotConnection = plots.ChildRemoved:Connect(function(plot)
+            plotChannels[plot.Name] = nil
+            lastAnimalData[plot.Name] = nil
+            
+            for i = #allAnimalsCache, 1, -1 do
+                if allAnimalsCache[i].plot == plot.Name then
+                    table.remove(allAnimalsCache, i)
+                end
+            end
+        end)
+        table.insert(scannerConnections, removedPlotConnection)
+    end
+    
+    -- Create GUI
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "44SAutoStealUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+    screenGui.DisplayOrder = 999999999
+    if gethui then
+        screenGui.Parent = gethui()
+    else
+        screenGui.Parent = game:GetService("CoreGui")
+    end
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 260, 0, 245)
+    frame.Position = UDim2.new(0, 20, 0, 500)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.2
+    frame.BorderSizePixel = 0
+    frame.ZIndex = 999999999
+    frame.Visible = false
+    frame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(180, 120, 255)
+    stroke.Thickness = 4
+    stroke.Transparency = 0.2
+    stroke.Parent = frame
+    
+    local strokeGradient = Instance.new("UIGradient")
+    strokeGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 50, 200)),
+        ColorSequenceKeypoint.new(0.25, Color3.fromRGB(180, 120, 255)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(220, 180, 255)),
+        ColorSequenceKeypoint.new(0.75, Color3.fromRGB(180, 120, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(100, 50, 200))
+    }
+    strokeGradient.Rotation = 0
+    strokeGradient.Parent = stroke
+    
+    spawn(function()
+        while wait(0.03) do
+            strokeGradient.Rotation = (strokeGradient.Rotation + 2) % 360
+        end
+    end)
+    
+    -- Dragging
+    local dragging = false
+    local dragInput, mousePos, framePos
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            framePos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - mousePos
+            frame.Position = UDim2.new(
+                framePos.X.Scale,
+                framePos.X.Offset + delta.X,
+                framePos.Y.Scale,
+                framePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -10, 0, 25)
+    titleLabel.Position = UDim2.new(0, 5, 0, 5)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "44S Auto Steal"
+    titleLabel.Font = Enum.Font.GothamBo
