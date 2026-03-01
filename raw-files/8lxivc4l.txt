@@ -1,0 +1,485 @@
+--[[
+    🔥 CHILLI AUTO-JOINER (Direct Teleport)
+    
+    Reads Job IDs from ChilliLogs EXE and teleports directly
+    No need to interact with Chilli Premium script!
+    
+    FEATURES:
+    - Reads Job IDs from file
+    - Direct teleport to servers
+    - Ignore list (70+ brainrots)
+    - Start/Stop in-game
+    - Undetected & clean
+    
+    HOW TO USE:
+    1. Run ChilliLogs_Premium.exe
+    2. Execute this script in Roblox
+    3. Press R to open GUI
+    4. Click START
+    5. Auto-joins servers!
+]]
+
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local CHILLI_FILE = "chilli_jobs.txt"
+local PLACE_ID = game.PlaceId
+
+-- ══════════════════════════════════════
+--     STATE & IGNORED PETS
+-- ══════════════════════════════════════
+local State = {
+    isRunning = false,
+    joinsAttempted = 0,
+    sessionStart = os.time(),
+    ignoredPets = {
+        -- Common/Low Value (default IGNORED)
+        ["las sis"] = true,
+        ["los tralaleritos"] = true,
+        ["las tralaleritas"] = true,
+        ["los spyderrinis"] = true,
+        ["perrito burrito"] = true,
+        ["los jobcitos"] = true,
+        ["los 67"] = true,
+        ["67"] = true,
+        ["los tacoritas"] = true,
+        ["los tortus"] = true,
+        ["los hotspotsitos"] = true,
+        ["los matteos"] = true,
+        ["los noo my hotspotsitos"] = true,
+        
+        -- Medium Value (default JOIN)
+        ["la vacca staturno saturnita"] = false,
+        ["chimpanzini spiderini"] = false,
+        ["karker sahur"] = false,
+        ["job job job sahur"] = false,
+        ["graipuss medussi"] = false,
+        ["tacorita bicicleta"] = false,
+        ["money money puggy"] = false,
+        ["chillin chili"] = false,
+        ["tang tang kelentang"] = false,
+        ["garama and madundung"] = false,
+        ["pot hotspot"] = false,
+        ["to to to sahur"] = false,
+        ["las vaquitas saturnitas"] = false,
+        ["chicleteira bicicleteira"] = false,
+        ["agarrini la palini"] = false,
+        ["mariachi corazoni"] = false,
+        ["los combinasionas"] = false,
+        ["la cucaracha"] = false,
+        ["karkerkar kurkur"] = false,
+        ["quesadilla crocodila"] = false,
+        ["esok sekolah"] = false,
+        ["dul dul dul"] = false,
+        ["nooo my hotspot"] = false,
+        ["sammyini spyderini"] = false,
+        ["spaghetti tualetti"] = false,
+        ["celularcini viciosini"] = false,
+        ["tralaledon"] = false,
+        ["tictac sahur"] = false,
+        ["ketupat kepat"] = false,
+        ["ketchuru and musturu"] = false,
+        ["burguro and fryuro"] = false,
+        ["please my present"] = false,
+        ["cooki and milki"] = false,
+        ["capitano moby"] = false,
+        ["strawberry elephant"] = false,
+        ["meowl"] = false,
+        
+        -- High Value (default JOIN)
+        ["extinct tralalero"] = false,
+        ["extinct matteo"] = false,
+        ["la karkerkar combinasion"] = false,
+        ["la grande combinasion"] = false,
+        ["nuclearo dinossauro"] = false,
+        ["la extinct grande"] = false,
+        ["la secret combinasion"] = false,
+        ["torrtuginni dragonfruitini"] = false,
+        ["dragon cannelloni"] = false,
+        ["la sahur combinasion"] = false,
+        ["blackhole goat"] = false,
+        ["la supreme combinasion"] = false,
+        ["la grande"] = false,
+        ["la vacca prese presente"] = false,
+        ["ho ho ho sahur"] = false,
+        ["chicleteira noelteira"] = false,
+        ["la jolly grande"] = false,
+        ["cerberus"] = false,
+        ["skibidi toilet"] = false,
+    }
+}
+
+-- ══════════════════════════════════════
+--     FILE READING
+-- ══════════════════════════════════════
+local function readJobFile()
+    local success, content = pcall(function()
+        return readfile(CHILLI_FILE)
+    end)
+    
+    if success and content and content ~= "" then
+        local jobs = {}
+        for line in content:gmatch("[^\r\n]+") do
+            -- Format: PetName|Value|JobID
+            local petName, value, jobId = line:match("^(.-)%|(.-)%|(.+)$")
+            if petName and jobId and jobId ~= "" then
+                table.insert(jobs, {
+                    pet = petName,
+                    value = value,
+                    jobId = jobId
+                })
+            end
+        end
+        return jobs
+    end
+    
+    return {}
+end
+
+local function clearJobFile()
+    pcall(function()
+        writefile(CHILLI_FILE, "")
+    end)
+end
+
+-- ══════════════════════════════════════
+--     CREATE GUI
+-- ══════════════════════════════════════
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ChilliAutoJoiner"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = LocalPlayer.PlayerGui
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.Size = UDim2.new(0, 500, 0, 450)
+Main.Position = UDim2.new(0.5, -250, 0.5, -225)
+Main.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Draggable = true
+Main.Visible = false
+Main.Parent = ScreenGui
+
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+
+local UIStroke = Instance.new("UIStroke", Main)
+UIStroke.Color = Color3.fromRGB(255, 107, 53)
+UIStroke.Thickness = 2
+
+-- ═══════════════════════════════════════
+--     TOP BAR
+-- ═══════════════════════════════════════
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1, 0, 0, 50)
+TopBar.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = Main
+
+Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 12)
+
+local TopFix = Instance.new("Frame")
+TopFix.Size = UDim2.new(1, 0, 0.5, 0)
+TopFix.Position = UDim2.new(0, 0, 0.5, 0)
+TopFix.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+TopFix.BorderSizePixel = 0
+TopFix.Parent = TopBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -100, 1, 0)
+Title.Position = UDim2.new(0, 20, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "🔥 CHILLI AUTO-JOINER"
+Title.TextColor3 = Color3.fromRGB(255, 107, 53)
+Title.TextSize = 16
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 35, 0, 35)
+CloseBtn.Position = UDim2.new(1, -43, 0.5, -17.5)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(195, 50, 50)
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = TopBar
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 8)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    Main.Visible = false
+end)
+
+-- ═══════════════════════════════════════
+--     STATUS PANEL
+-- ═══════════════════════════════════════
+local StatusPanel = Instance.new("Frame")
+StatusPanel.Size = UDim2.new(1, -30, 0, 90)
+StatusPanel.Position = UDim2.new(0, 15, 0, 60)
+StatusPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+StatusPanel.BorderSizePixel = 0
+StatusPanel.Parent = Main
+Instance.new("UICorner", StatusPanel).CornerRadius = UDim.new(0, 10)
+
+local StatusTitle = Instance.new("TextLabel")
+StatusTitle.Size = UDim2.new(1, 0, 0, 28)
+StatusTitle.BackgroundTransparency = 1
+StatusTitle.Text = "📊 STATUS"
+StatusTitle.TextColor3 = Color3.fromRGB(255, 107, 53)
+StatusTitle.TextSize = 14
+StatusTitle.Font = Enum.Font.GothamBold
+StatusTitle.Parent = StatusPanel
+
+local StatusText = Instance.new("TextLabel")
+StatusText.Size = UDim2.new(1, -20, 0, 20)
+StatusText.Position = UDim2.new(0, 10, 0, 32)
+StatusText.BackgroundTransparency = 1
+StatusText.Text = "⏸️ Stopped - Click START to begin"
+StatusText.TextColor3 = Color3.fromRGB(200, 80, 80)
+StatusText.TextSize = 12
+StatusText.Font = Enum.Font.Gotham
+StatusText.TextXAlignment = Enum.TextXAlignment.Left
+StatusText.Parent = StatusPanel
+
+local StatsText = Instance.new("TextLabel")
+StatsText.Size = UDim2.new(1, -20, 0, 20)
+StatsText.Position = UDim2.new(0, 10, 0, 56)
+StatsText.BackgroundTransparency = 1
+StatsText.Text = "Joins: 0 | Session: 00:00:00"
+StatsText.TextColor3 = Color3.fromRGB(140, 140, 160)
+StatsText.TextSize = 11
+StatsText.Font = Enum.Font.Gotham
+StatsText.TextXAlignment = Enum.TextXAlignment.Left
+StatsText.Parent = StatusPanel
+
+-- ═══════════════════════════════════════
+--     IGNORE LIST
+-- ═══════════════════════════════════════
+local IgnoreLabel = Instance.new("TextLabel")
+IgnoreLabel.Size = UDim2.new(1, -30, 0, 25)
+IgnoreLabel.Position = UDim2.new(0, 15, 0, 160)
+IgnoreLabel.BackgroundTransparency = 1
+IgnoreLabel.Text = "🚫 Ignore List (Toggle to SKIP joining)"
+IgnoreLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+IgnoreLabel.TextSize = 13
+IgnoreLabel.Font = Enum.Font.GothamBold
+IgnoreLabel.TextXAlignment = Enum.TextXAlignment.Left
+IgnoreLabel.Parent = Main
+
+local IgnoreScroll = Instance.new("ScrollingFrame")
+IgnoreScroll.Size = UDim2.new(1, -30, 0, 200)
+IgnoreScroll.Position = UDim2.new(0, 15, 0, 190)
+IgnoreScroll.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+IgnoreScroll.BorderSizePixel = 0
+IgnoreScroll.ScrollBarThickness = 5
+IgnoreScroll.ScrollBarImageColor3 = Color3.fromRGB(255, 107, 53)
+IgnoreScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+IgnoreScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+IgnoreScroll.Parent = Main
+Instance.new("UICorner", IgnoreScroll).CornerRadius = UDim.new(0, 10)
+
+local IgnoreLayout = Instance.new("UIListLayout")
+IgnoreLayout.Padding = UDim.new(0, 5)
+IgnoreLayout.Parent = IgnoreScroll
+
+-- Create ignore list
+local allPets = {}
+for petName, _ in pairs(State.ignoredPets) do
+    table.insert(allPets, petName)
+end
+table.sort(allPets)
+
+for _, petName in ipairs(allPets) do
+    local PetFrame = Instance.new("Frame")
+    PetFrame.Size = UDim2.new(1, -10, 0, 32)
+    PetFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+    PetFrame.BorderSizePixel = 0
+    PetFrame.Parent = IgnoreScroll
+    Instance.new("UICorner", PetFrame).CornerRadius = UDim.new(0, 6)
+    
+    local PetLabel = Instance.new("TextLabel")
+    PetLabel.Size = UDim2.new(0.63, 0, 1, 0)
+    PetLabel.Position = UDim2.new(0, 10, 0, 0)
+    PetLabel.BackgroundTransparency = 1
+    PetLabel.Text = petName:upper()
+    PetLabel.TextColor3 = Color3.fromRGB(200, 200, 210)
+    PetLabel.TextSize = 9
+    PetLabel.Font = Enum.Font.GothamBold
+    PetLabel.TextXAlignment = Enum.TextXAlignment.Left
+    PetLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    PetLabel.Parent = PetFrame
+    
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(0.33, -10, 0, 24)
+    ToggleBtn.Position = UDim2.new(0.67, 0, 0.5, -12)
+    ToggleBtn.BackgroundColor3 = State.ignoredPets[petName] and Color3.fromRGB(195, 50, 50) or Color3.fromRGB(40, 180, 80)
+    ToggleBtn.Text = State.ignoredPets[petName] and "IGNORE" or "JOIN"
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleBtn.TextSize = 10
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.BorderSizePixel = 0
+    ToggleBtn.Parent = PetFrame
+    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 5)
+    
+    ToggleBtn.MouseButton1Click:Connect(function()
+        State.ignoredPets[petName] = not State.ignoredPets[petName]
+        if State.ignoredPets[petName] then
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(195, 50, 50)
+            ToggleBtn.Text = "IGNORE"
+        else
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+            ToggleBtn.Text = "JOIN"
+        end
+    end)
+end
+
+-- ═══════════════════════════════════════
+--     CONTROL BUTTONS
+-- ═══════════════════════════════════════
+local ButtonFrame = Instance.new("Frame")
+ButtonFrame.Size = UDim2.new(1, -30, 0, 45)
+ButtonFrame.Position = UDim2.new(0, 15, 1, -60)
+ButtonFrame.BackgroundTransparency = 1
+ButtonFrame.Parent = Main
+
+local StartBtn = Instance.new("TextButton")
+StartBtn.Size = UDim2.new(0.48, 0, 1, 0)
+StartBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+StartBtn.Text = "▶ START"
+StartBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StartBtn.TextSize = 14
+StartBtn.Font = Enum.Font.GothamBold
+StartBtn.BorderSizePixel = 0
+StartBtn.Parent = ButtonFrame
+Instance.new("UICorner", StartBtn).CornerRadius = UDim.new(0, 8)
+
+local StopBtn = Instance.new("TextButton")
+StopBtn.Size = UDim2.new(0.48, 0, 1, 0)
+StopBtn.Position = UDim2.new(0.52, 0, 0, 0)
+StopBtn.BackgroundColor3 = Color3.fromRGB(195, 50, 50)
+StopBtn.Text = "■ STOP"
+StopBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopBtn.TextSize = 14
+StopBtn.Font = Enum.Font.GothamBold
+StopBtn.BorderSizePixel = 0
+StopBtn.Parent = ButtonFrame
+Instance.new("UICorner", StopBtn).CornerRadius = UDim.new(0, 8)
+
+-- ══════════════════════════════════════
+--     AUTO-JOIN LOGIC (DIRECT TELEPORT)
+-- ══════════════════════════════════════
+local function updateStats()
+    local sessionTime = os.time() - State.sessionStart
+    StatsText.Text = string.format(
+        "Joins: %d | Session: %02d:%02d:%02d",
+        State.joinsAttempted,
+        math.floor(sessionTime / 3600),
+        math.floor((sessionTime % 3600) / 60),
+        sessionTime % 60
+    )
+end
+
+local function processJobs()
+    while State.isRunning do
+        task.wait(3)
+        
+        local jobs = readJobFile()
+        
+        if #jobs > 0 then
+            for _, jobData in ipairs(jobs) do
+                local petLower = jobData.pet:lower()
+                
+                -- Check if ignored
+                if not State.ignoredPets[petLower] then
+                    StatusText.Text = string.format("🔥 Joining %s (%s)...", jobData.pet, jobData.value)
+                    StatusText.TextColor3 = Color3.fromRGB(255, 107, 53)
+                    
+                    State.joinsAttempted = State.joinsAttempted + 1
+                    updateStats()
+                    
+                    task.wait(1)
+                    
+                    -- DIRECT TELEPORT
+                    local success = pcall(function()
+                        TeleportService:TeleportToPlaceInstance(PLACE_ID, jobData.jobId, LocalPlayer)
+                    end)
+                    
+                    if success then
+                        StatusText.Text = "✅ Teleporting..."
+                        StatusText.TextColor3 = Color3.fromRGB(80, 200, 100)
+                    else
+                        StatusText.Text = "❌ Teleport failed"
+                        StatusText.TextColor3 = Color3.fromRGB(200, 80, 80)
+                    end
+                    
+                    task.wait(8)
+                else
+                    StatusText.Text = string.format("🚫 Ignoring %s", jobData.pet)
+                    StatusText.TextColor3 = Color3.fromRGB(200, 80, 80)
+                    task.wait(1)
+                end
+            end
+            
+            clearJobFile()
+        end
+    end
+end
+
+StartBtn.MouseButton1Click:Connect(function()
+    if not State.isRunning then
+        State.isRunning = true
+        StatusText.Text = "✅ AUTO-JOIN ACTIVE"
+        StatusText.TextColor3 = Color3.fromRGB(80, 200, 100)
+        task.spawn(processJobs)
+    end
+end)
+
+StopBtn.MouseButton1Click:Connect(function()
+    State.isRunning = false
+    StatusText.Text = "⏸️ Stopped - Click START to begin"
+    StatusText.TextColor3 = Color3.fromRGB(200, 80, 80)
+end)
+
+-- ══════════════════════════════════════
+--     TOGGLE WITH R KEY
+-- ══════════════════════════════════════
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.R then
+        Main.Visible = not Main.Visible
+        if Main.Visible then
+            Main.Size = UDim2.new(0, 0, 0, 0)
+            TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+                Size = UDim2.new(0, 500, 0, 450)
+            }):Play()
+        end
+    end
+end)
+
+-- Auto-update stats
+task.spawn(function()
+    while true do
+        task.wait(1)
+        updateStats()
+    end
+end)
+
+-- Anti-AFK
+task.spawn(function()
+    task.wait(45)
+    LocalPlayer.Idled:Connect(function()
+        game:GetService("VirtualUser"):CaptureController()
+        game:GetService("VirtualUser"):ClickButton2(Vector2.new())
+    end)
+end)
+
+print("✅ Chilli Auto-Joiner loaded!")
+print("📋 Press R to open GUI")
+print("🚀 Click START to auto-join servers!")
