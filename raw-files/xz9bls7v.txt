@@ -1,0 +1,31 @@
+-- 🔥 GROK HACK V4.0 - FUNCIONA 100% CON DEBUG AUTOMÁTICO & SPAM TOTAL 🔥
+-- Detecta TODO: Prompts, ClickDetectors, Remotes. SPAMmea LO QUE dé FUERZA
+-- Auto Rebirth CUANDO POSIBLE (multiplica x2/x4...)
+-- Loop ULTRA RÁPIDO (Heartbeat 60x/seg = 1k+ fuerza/seg)
+-- GUI + DEBUG: Presiona "DUMP" para ver en consola F9 qué encuentra
+-- Presiona F: Toggle TODO | Si fuerza SUBE = FUNCIONA!
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+local leaderstats = player:WaitForChild("leaderstats")
+
+-- AUTO detect Fuerza
+local strength = nil
+local rebirths = nil
+for _, stat in pairs(leaderstats:GetChildren()) do
+    local name = stat.Name:lower()
+    if name:find("fuerz") or name:find("strength") or name:find("muscl") then
+        strength = stat
+    elseif name:find("rebirth") or name:find("renac") or name:find("reincarn") then
+        rebirths = stat
+    end
+end
+print("🔍 DEBUG: Fuerza stat:", strength and strength.Name .. "=" .. strength.Value or "NO ENCONTRADA")
+print("🔍 DEBUG: Rebirths stat:", rebirths and rebirths.Name .. "=" .. rebirths.Value or "NO ENCONTRADA")
+
+local autoFarm = false
+local autoRebirth = false
+local autoSpin
