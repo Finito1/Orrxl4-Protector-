@@ -1,0 +1,354 @@
+-- ANTI RAGDOLL Y EFFECTS (siempre activo)
+if not game:IsLoaded() then game.Loaded:Wait() end
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Player = Players.LocalPlayer
+
+local ENABLE_ANTI_RAGDOLL = true
+local ENABLE_ANTI_ITEM = true
+local Frozen = false
+local DisabledRemotes = {}
+local RemoteWatcher
+local BlockedStates = {
+    [Enum.HumanoidStateType.Ragdoll] = true,
+    [Enum.HumanoidStateType.FallingDown] = true,
+    [Enum.HumanoidStateType.Physics] = true,
+    [Enum.HumanoidStateType.Dead] = true
+}
+local RemoteKeywords = { "useitem", "combatservice", "ragdoll" }
+
+local function ForceNormal(character)
+    local hum = character:FindFirstChildOfClass("Humanoid")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    hum.Health = hum.MaxHealth
+    hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+    if not Frozen then
+        Frozen = true
+        hrp.Anchored = true
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.CFrame += Vector3.new(0, 1.5, 0)
+    end
+end
+
+local function Release(character)
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp and Frozen then
+        hrp.Anchored = false
+        Frozen = false
+    end
+end
+
+local function RestoreMotors(character)
+    for _, v in ipairs(character:GetDescendants()) do
+        if v:IsA("Motor6D") then
+            v.Enabled = true
+        elseif v:IsA("Constraint") then
+            v.Enabled = false
+        end
+    end
+end
+
+local function InitAntiRagdoll(character)
+    local hum = character:WaitForChild("Humanoid", 10)
+    if not hum then return end
+    for state in pairs(BlockedStates) do
+        hum:SetStateEnabled(state, false)
+    end
+    hum.StateChanged:Connect(function(_, new)
+        if ENABLE_ANTI_RAGDOLL and BlockedStates[new] then
+            ForceNormal(character)
+            RestoreMotors(character)
+        end
+    end)
+    RunService.Stepped:Connect(function()
+        if not ENABLE_ANTI_RAGDOLL then
+            Release(character)
+            return
+        end
+        if BlockedStates[hum:GetState()] then
+            ForceNormal(character)
+        else
+            Release(character)
+        end
+        hum.Health = hum.MaxHealth
+    end)
+end
+
+local function KillRemote(remote)
+    if not getconnections or not remote:IsA("RemoteEvent") then return end
+    if DisabledRemotes[remote] then return end
+    local name = remote.Name:lower()
+    for _, key in ipairs(RemoteKeywords) do
+        if name:find(key) then
+            DisabledRemotes[remote] = {}
+            for _, c in ipairs(getconnections(remote.OnClientEvent)) do
+                if c.Disable then
+                    c:Disable()
+                    table.insert(DisabledRemotes[remote], c)
+                end
+            end
+            break
+        end
+    end
+end
+
+local function InitAntiItem()
+    Controls:Enable()
+    for _, obj in ipairs(ReplicatedStorage:GetDescendants()) do
+        KillRemote(obj)
+    end
+    RemoteWatcher = ReplicatedStorage.DescendantAdded:Connect(KillRemote)
+end
+
+Player.CharacterAdded:Connect(function(char)
+    task.wait(0.4)
+    InitAntiRagdoll(char)
+end)
+if Player.Character then
+    InitAntiRagdoll(Player.Character)
+end
+if ENABLE_ANTI_ITEM then
+    task.delay(0.25, InitAntiItem)
+end
+
+-- HUB PEQUEÑO MOVIBLE + AUTO GRAB
+_G.InstaPickup = false
+
+local hubGui = Instance.new("ScreenGui")
+hubGui.Name = "AnomalyHubMini"
+hubGui.ResetOnSpawn = false
+hubGui.Parent = game.CoreGui
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 220, 0, 70)
+frame.Position = UDim2.new(0.5, -110, 0.05, 0)
+frame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+frame.BorderSizePixel = 0
+frame.Active = true
+frame.Parent = hubGui
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 12)
+corner.Parent = frame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.55, 0)
+title.BackgroundTransparency = 1
+title.Text = "Anomaly Hub Grab"
+title.TextColor3 = Color3.fromRGB(200, 200, 255)
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 20
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.Parent = frame
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0.9, 0, 0.3, 0)
+toggleBtn.Position = UDim2.new(0.05, 0, 0.6, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+toggleBtn.Text = "OFF"
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Font = Enum.Font.GothamSemibold
+toggleBtn.TextSize = 16
+toggleBtn.Parent = frame
+
+local btnCorner = Instance.new("UICorner")
+btnCorner.CornerRadius = UDim.new(0, 8)
+btnCorner.Parent = toggleBtn
+
+-- Drag solo para el hub
+local dragging, dragStart, startPos
+frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = frame.Position
+    end
+end)
+
+frame.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- Toggle ON/OFF
+toggleBtn.MouseButton1Click:Connect(function()
+    _G.InstaPickup = not _G.InstaPickup
+    
+    if _G.InstaPickup then
+        toggleBtn.Text = "ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 170, 70)
+    else
+        toggleBtn.Text = "OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 40, 40)
+    end
+end)
+
+-- Barra fija arriba centro
+local ProgressContainer = Instance.new("Frame")
+ProgressContainer.Size = UDim2.new(0, 220, 0, 35)
+ProgressContainer.Position = UDim2.new(0.5, -110, 0, 8)
+ProgressContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+ProgressContainer.BackgroundTransparency = 0.25
+ProgressContainer.BorderSizePixel = 0
+ProgressContainer.Parent = hubGui
+
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.Parent = ProgressContainer
+
+local PercentLabel = Instance.new("TextLabel")
+PercentLabel.Size = UDim2.new(1, 0, 0, 20)
+PercentLabel.Position = UDim2.new(0, 0, 0, 5)
+PercentLabel.BackgroundTransparency = 1
+PercentLabel.TextColor3 = Color3.fromRGB(220, 220, 255)
+PercentLabel.Font = Enum.Font.GothamSemibold
+PercentLabel.TextSize = 18
+PercentLabel.Text = "0%"
+PercentLabel.TextXAlignment = Enum.TextXAlignment.Center
+PercentLabel.Parent = ProgressContainer
+
+local ProgressFrame = Instance.new("Frame")
+ProgressFrame.Size = UDim2.new(0.9, 0, 0, 8)
+ProgressFrame.Position = UDim2.new(0.05, 0, 0.6, 0)
+ProgressFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+ProgressFrame.BorderSizePixel = 0
+ProgressFrame.Parent = ProgressContainer
+
+local ProgressCorner = Instance.new("UICorner")
+ProgressCorner.CornerRadius = UDim.new(0, 6)
+ProgressCorner.Parent = ProgressFrame
+
+local ProgressBar = Instance.new("Frame")
+ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+ProgressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+ProgressBar.BorderSizePixel = 0
+ProgressBar.Parent = ProgressFrame
+
+local BarCorner = Instance.new("UICorner")
+BarCorner.CornerRadius = UDim.new(0, 6)
+BarCorner.Parent = ProgressBar
+
+-- Auto Steal (siempre intenta cuando ON)
+task.spawn(function()
+    local hrp, humanoid
+    
+    local function updateChar()
+        local char = player.Character or player.CharacterAdded:Wait()
+        hrp = char:WaitForChild("HumanoidRootPart", 8)
+        humanoid = char:WaitForChild("Humanoid", 8)
+    end
+    
+    updateChar()
+    player.CharacterAdded:Connect(updateChar)
+    
+    local function getPos(prompt)
+        local p = prompt.Parent
+        if p:IsA("BasePart") then return p.Position end
+        if p:IsA("Model") then
+            local prim = p.PrimaryPart or p:FindFirstChildWhichIsA("BasePart")
+            return prim and prim.Position
+        end
+        if p:IsA("Attachment") then return p.WorldPosition end
+        return nil
+    end
+    
+    local function buscarPromptCerca()
+        local cerca, distMin = nil, math.huge
+        local plots = workspace:FindFirstChild("Plots")
+        if not plots or not hrp then return nil, math.huge end
+        
+        for _, obj in ipairs(plots:GetDescendants()) do
+            if obj:IsA("ProximityPrompt") and obj.Enabled and obj.ActionText == "Steal" then
+                local pos = getPos(obj)
+                if pos then
+                    local dist = (hrp.Position - pos).Magnitude
+                    if dist <= obj.MaxActivationDistance + 4 and dist < distMin then
+                        distMin = dist
+                        cerca = obj
+                    end
+                end
+            end
+        end
+        return cerca, distMin
+    end
+    
+    local function activar(prompt)
+        if prompt then
+            fireproximityprompt(prompt, 20, math.huge)
+            prompt:InputHoldBegin()
+            task.wait(0.012)  -- reducido para más velocidad
+            prompt:InputHoldEnd()
+        end
+    end
+    
+    local promptActual = nil
+    local ultimoRobo = 0
+    
+    RunService.Heartbeat:Connect(function()
+        if not _G.InstaPickup then return end
+        if tick() - ultimoRobo > 0.08 or not promptActual then
+            promptActual = buscarPromptCerca()
+        end
+    end)
+    
+    while true do
+        if _G.InstaPickup and humanoid and humanoid.WalkSpeed > 25 and hrp then
+            if promptActual then
+                local _, dist = buscarPromptCerca()
+                if dist and dist <= promptActual.MaxActivationDistance + 4 then
+                    
+                    ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+                    PercentLabel.Text = "0%"
+                    
+                    local tiempoPaso = 0.2 / 8  -- ciclo ~0.2s
+                    for i = 1, 8 do
+                        if not _G.InstaPickup then break end
+                        local porc = i * (100/8)
+                        TweenService:Create(ProgressBar, TweenInfo.new(tiempoPaso, Enum.EasingStyle.Linear), {
+                            Size = UDim2.new(i/8, 0, 1, 0)
+                        }):Play()
+                        PercentLabel.Text = math.floor(porc + 0.5) .. "%"
+                        task.wait(tiempoPaso)
+                    end
+                    
+                    activar(promptActual)
+                    ultimoRobo = tick()
+                    
+                    PercentLabel.Text = "100%"
+                    task.wait(0.015)
+                    
+                    ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+                    PercentLabel.Text = "0%"
+                    promptActual = nil
+                    task.wait(0.025)
+                else
+                    task.wait(0.015)
+                end
+            else
+                task.wait(0.015)
+            end
+        else
+            ProgressBar.Size = UDim2.new(0, 0, 1, 0)
+            PercentLabel.Text = "0%"
+            task.wait(0.1)
+        end
+    end
+end)
