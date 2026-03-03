@@ -1,0 +1,258 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+local pg = player:WaitForChild("PlayerGui")
+
+local GRAB_RADIUS = 12
+local COOLDOWN_TIME = 0.5
+local LastGrabTime = 0
+local IsStealing = false
+local InternalStealCache = {}
+local PromptMemoryCache = {}
+local allAnimalsCache = {}
+local AutoGrabEnabled = false
+
+--menu
+if pg:FindFirstChild("JxxsGrabGui") then 
+    pg.JxxsGrabGui:Destroy() 
+end
+
+local sg = Instance.new("ScreenGui")
+sg.Name = "JxxsGrabGui"
+sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+sg.Parent = pg
+
+local frame = Instance.new("Frame", sg)
+frame.BorderSizePixel = 0
+frame.BackgroundColor3 = Color3.fromRGB(231, 87, 255)
+frame.Size = UDim2.new(0, 180, 0, 180)
+frame.Position = UDim2.new(0.5, -90, 0.5, -90)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+
+Instance.new("UICorner", frame)
+Instance.new("UIStroke", frame)
+
+local title = Instance.new("TextLabel", frame)
+title.BorderSizePixel = 0
+title.TextSize = 17
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.Text = "Jxxs Grab"
+title.Font = Enum.Font.SourceSansBold
+
+Instance.new("UIStroke", title)
+
+local fps = Instance.new("TextLabel", frame)
+fps.BorderSizePixel = 0
+fps.TextSize = 11
+fps.BackgroundTransparency = 1
+fps.TextColor3 = Color3.fromRGB(255, 255, 255)
+fps.Size = UDim2.new(0, 60, 0, 18)
+fps.Position = UDim2.new(0.05, 0, 0.18, 0)
+fps.Text = "FPS: ---"
+
+Instance.new("UIStroke", fps)
+
+local ping = Instance.new("TextLabel", frame)
+ping.BorderSizePixel = 0
+ping.TextSize = 11
+ping.BackgroundTransparency = 1
+ping.TextColor3 = Color3.fromRGB(255, 255, 255)
+ping.Size = UDim2.new(0, 60, 0, 18)
+ping.Position = UDim2.new(0.6, 0, 0.18, 0)
+ping.Text = "PING: ---"
+
+Instance.new("UIStroke", ping)
+
+-- INSTANT GRAB
+local instantBtn = Instance.new("TextButton", frame)
+instantBtn.BorderSizePixel = 0
+instantBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+instantBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+instantBtn.Size = UDim2.new(0, 140, 0, 30)
+instantBtn.Position = UDim2.new(0, 20, 0, 60)
+instantBtn.Text = "INSTANT GRAB"
+instantBtn.TextSize = 14
+instantBtn.Font = Enum.Font.SourceSansBold
+
+Instance.new("UICorner", instantBtn)
+Instance.new("UIStroke", instantBtn)
+
+-- AUTO GRAB
+local autoBtn = Instance.new("TextButton", frame)
+autoBtn.BorderSizePixel = 0
+autoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+autoBtn.Size = UDim2.new(0, 140, 0, 30)
+autoBtn.Position = UDim2.new(0, 20, 0, 100)
+autoBtn.Text = "AUTO GRAB: OFF"
+autoBtn.TextSize = 14
+autoBtn.Font = Enum.Font.SourceSansBold
+
+Instance.new("UICorner", autoBtn)
+Instance.new("UIStroke", autoBtn)
+
+local drag = Instance.new("UIDragDetector", frame)
+
+-- Click anim
+local function clickAnim(btn)
+    local orig = btn.BackgroundColor3
+    TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = Color3.fromRGB(100, 100, 100)}):Play()
+    task.wait(0.08)
+    TweenService:Create(btn, TweenInfo.new(0.08), {BackgroundColor3 = orig}):Play()
+end
+
+-- Lógica Grab
+local function getHRP()
+    local char = player.Character
+    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("UpperTorso"))
+end
+
+local function scanPlot(plot)
+    if not plot or not plot:IsA("Model") then return end
+    local podiums = plot:FindFirstChild("AnimalPodiums")
+    if not podiums then return end
+    for _, pod in podiums:GetChildren() do
+        if pod:IsA("Model") and pod:FindFirstChild("Base") then
+            table.insert(allAnimalsCache, {
+                plot = plot.Name,
+                slot = pod.Name,
+                worldPosition = pod:GetPivot().Position,
+                uid = plot.Name .. "_" .. pod.Name,
+            })
+        end
+    end
+end
+
+local function startScanner()
+    task.wait(3)
+    local plots = workspace:FindFirstChild("Plots")
+    if plots then
+        for _, p in plots:GetChildren() do scanPlot(p) end
+        plots.ChildAdded:Connect(scanPlot)
+    end
+end
+
+local function getPrompt(animal)
+    local cache = PromptMemoryCache[animal.uid]
+    if cache and cache.Parent then return cache end
+
+    local plot = workspace.Plots:FindFirstChild(animal.plot)
+    if not plot then return end
+    local podium = plot.AnimalPodiums:FindFirstChild(animal.slot)
+    if not podium then return end
+    local base = podium:FindFirstChild("Base")
+    if not base then return end
+    local sp = base:FindFirstChild("Spawn")
+    if not sp then return end
+    local att = sp:FindFirstChild("PromptAttachment")
+    if not att then return end
+    local prompt = att:FindFirstChildOfClass("ProximityPrompt")
+    if prompt then PromptMemoryCache[animal.uid] = prompt end
+    return prompt
+end
+
+local function cacheCallbacks(prompt)
+    if InternalStealCache[prompt] then return end
+    local data = {hold={}, trigger={}}
+    local s1, c1 = pcall(getconnections, prompt.PromptButtonHoldBegan)
+    if s1 then for _, conn in c1 do table.insert(data.hold, conn.Function) end end
+    local s2, c2 = pcall(getconnections, prompt.Triggered)
+    if s2 then for _, conn in c2 do table.insert(data.trigger, conn.Function) end end
+    InternalStealCache[prompt] = data
+end
+
+local function doGrab(prompt)
+    if (os.clock() - LastGrabTime) < COOLDOWN_TIME then return end
+    local data = InternalStealCache[prompt]
+    if not data or IsStealing then return end
+
+    IsStealing = true
+    LastGrabTime = os.clock()
+
+    task.spawn(function()
+        for _, fn in data.hold do task.spawn(fn) end
+        for _, fn in data.trigger do task.spawn(fn) end
+        task.wait(COOLDOWN_TIME)
+        IsStealing = false
+    end)
+end
+
+local function nearestAnimal()
+    local hrp = getHRP()
+    if not hrp then return nil end
+    local closest, minDist = nil, math.huge
+    for _, animal in allAnimalsCache do
+        local dist = (hrp.Position - animal.worldPosition).Magnitude
+        if dist < minDist and dist <= GRAB_RADIUS then
+            minDist = dist
+            closest = animal
+        end
+    end
+    return closest
+end
+
+instantBtn.MouseButton1Click:Connect(function()
+    clickAnim(instantBtn)
+    if IsStealing then return end
+    local animal = nearestAnimal()
+    if animal then
+        local prompt = getPrompt(animal)
+        if prompt then
+            cacheCallbacks(prompt)
+            doGrab(prompt)
+        end
+    end
+end)
+
+autoBtn.MouseButton1Click:Connect(function()
+    AutoGrabEnabled = not AutoGrabEnabled
+    clickAnim(autoBtn)
+    autoBtn.Text = AutoGrabEnabled and "AUTO GRAB: ON" or "AUTO GRAB: OFF"
+    autoBtn.BackgroundColor3 = AutoGrabEnabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(50, 50, 50)
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.06)
+        if AutoGrabEnabled and not IsStealing and (os.clock() - LastGrabTime >= COOLDOWN_TIME) then
+            local animal = nearestAnimal()
+            if animal then
+                task.wait(0.1)
+                local check = nearestAnimal()
+                if check and check.uid == animal.uid then
+                    local p = getPrompt(check)
+                    if p then
+                        cacheCallbacks(p)
+                        doGrab(p)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- FPS
+local fpsCount = 0
+RunService.RenderStepped:Connect(function() fpsCount += 1 end)
+spawn(function()
+    while wait(1) do
+        fps.Text = "FPS: " .. fpsCount
+        fpsCount = 0
+    end
+end)
+
+-- PING
+spawn(function()
+    while wait(1) do
+        local p = math.floor(player:GetNetworkPing() * 1000)
+        ping.Text = "PING: " .. p .. "ms"
+    end
+end)
+
+startScanner()
+
+print("Jxxs Grab")
