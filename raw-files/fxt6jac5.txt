@@ -1,0 +1,464 @@
+--// SERVICIOS
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+--================ ESTADOS =================
+local guiVisible = false
+
+-- Estados de toggles (true = ON) - reseteamos explícitamente
+local toggles = {
+    AutoSteal = false,
+    ESPEnemigos = false,
+    ESPBasesXray = false,
+    SpeedBoost = false,    -- Aseguramos false al cargar
+    AntiRagdoll = false,
+    SuperSalto = false     -- Ahora será Infinite Jump
+}
+
+-- Conexiones globales para cleanup
+local connections = {}
+
+--================ BOTÓN FLOTANTE =================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = gethui()
+ScreenGui.ResetOnSpawn = false
+
+local FloatButton = Instance.new("TextButton", ScreenGui)
+FloatButton.Size = UDim2.new(0,60,0,60)
+FloatButton.Position = UDim2.new(1,-80,0.5,-30)
+FloatButton.BackgroundColor3 = Color3.fromRGB(30,30,30)
+FloatButton.Text = "LOKI"
+FloatButton.Font = Enum.Font.GothamBold
+FloatButton.TextSize = 24
+FloatButton.TextColor3 = Color3.new(1,1,1)
+FloatButton.Active = true
+FloatButton.Draggable = true
+Instance.new("UICorner", FloatButton).CornerRadius = UDim.new(1,0)
+
+RunService.RenderStepped:Connect(function()
+	FloatButton.TextColor3 = Color3.fromHSV(tick() % 1, 1, 1)
+end)
+
+--================ GUI PRINCIPAL =================
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Size = UDim2.new(0,220,0,235)
+Frame.Position = UDim2.new(0,20,0.3,0)
+Frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Frame.Active = true
+Frame.Draggable = true
+Frame.Visible = false
+Instance.new("UICorner", Frame).CornerRadius = UDim.new(0,10)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1,0,0,28)
+Title.BackgroundTransparency = 1
+Title.Text = "LOKI MODS V4"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 18
+Title.TextStrokeTransparency = 0
+
+local SubTitle = Instance.new("TextLabel", Frame)
+SubTitle.Size = UDim2.new(1,0,0,16)
+SubTitle.Position = UDim2.new(0,0,0,26)
+SubTitle.BackgroundTransparency = 1
+SubTitle.Text = "Creator: LOKI"
+SubTitle.Font = Enum.Font.Gotham
+SubTitle.TextSize = 12
+SubTitle.TextColor3 = Color3.fromRGB(180,180,180)
+
+RunService.RenderStepped:Connect(function()
+	Title.TextColor3 = Color3.fromHSV(tick() % 1, 1, 1)
+end)
+
+local Scroll = Instance.new("ScrollingFrame", Frame)
+Scroll.Position = UDim2.new(0,0,0,50)
+Scroll.Size = UDim2.new(1,0,1,-55)
+Scroll.CanvasSize = UDim2.new(0,0,0,0)
+Scroll.BackgroundTransparency = 1
+Scroll.BorderSizePixel = 0
+Scroll.ScrollBarImageTransparency = 1
+Scroll.ScrollingDirection = Enum.ScrollingDirection.Y
+
+local UIList = Instance.new("UIListLayout", Scroll)
+UIList.Padding = UDim.new(0,8)
+UIList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+
+UIList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+	Scroll.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y + 20)
+end)
+
+--================ FUNCIÓN BASE PARA BOTONES =================
+local function createButton(text, toggleKey)
+	local btn = Instance.new("TextButton", Scroll)
+	btn.Size = UDim2.new(1, -20, 0, 40)
+	btn.Text = text
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 14
+	btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	btn.TextColor3 = Color3.new(1,1,1)
+	
+	local corner = Instance.new("UICorner", btn)
+	corner.CornerRadius = UDim.new(0,6)
+	
+	btn.MouseButton1Click:Connect(function()
+		toggles[toggleKey] = not toggles[toggleKey]
+		
+		if toggles[toggleKey] then
+			btn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)  -- ON
+		else
+			btn.BackgroundColor3 = Color3.fromRGB(40,40,40)     -- OFF
+		end
+		
+		if toggleKey == "AutoSteal" then toggleAutoSteal(toggles.AutoSteal) end
+		if toggleKey == "ESPEnemigos" then toggleESPEnemigos(toggles.ESPEnemigos) end
+		if toggleKey == "ESPBasesXray" then toggleESPBases(toggles.ESPBasesXray) end
+		if toggleKey == "SpeedBoost" then toggleSpeed(toggles.SpeedBoost) end
+		if toggleKey == "AntiRagdoll" then toggleAntiRagdoll(toggles.AntiRagdoll) end
+		if toggleKey == "SuperSalto" then toggleSuperSalto(toggles.SuperSalto) end
+	end)
+	
+	-- Color inicial según estado (por si reload)
+	if toggles[toggleKey] then
+		btn.BackgroundColor3 = Color3.fromRGB(220, 30, 30)
+	else
+		btn.BackgroundColor3 = Color3.fromRGB(40,40,40)
+	end
+	
+	return btn
+end
+
+--================ ABRIR / CERRAR GUI =================
+FloatButton.MouseButton1Click:Connect(function()
+	guiVisible = not guiVisible
+	Frame.Visible = guiVisible
+end)
+
+--================ BOTONES =================
+createButton("AUTO GRAB", "AutoSteal")
+createButton("SPEED BOOSTED", "SpeedBoost")
+createButton("ANTI RAGDOLL", "AntiRagdoll")
+createButton("ESP ENEMIGOS", "ESPEnemigos")
+createButton("ESP X-RAY", "ESPBasesXray")
+createButton("INFINITE JUMP", "SuperSalto")  -- Cambié el texto para que sea más claro
+
+-- ===================== FUNCIONES REALES =====================
+
+-- AUTO GRAB (sin cambios)
+local autoStealConn
+function toggleAutoSteal(enable)
+    if autoStealConn then autoStealConn:Disconnect() autoStealConn = nil end
+    if not enable then return end
+    
+    autoStealConn = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+        local hrp = char.HumanoidRootPart
+        
+        local myPlotName = "Plot_" .. LocalPlayer.Name
+        for _, plot in ipairs(Workspace:FindFirstChild("Plots") and Workspace.Plots:GetChildren() or {}) do
+            if plot.Name == myPlotName then continue end
+            
+            if (plot:GetPivot().Position - hrp.Position).Magnitude > 80 then continue end
+            
+            local podiums = plot:FindFirstChild("AnimalPodiums")
+            if not podiums then continue end
+            
+            for _, podium in ipairs(podiums:GetChildren()) do
+                local basePart = podium:FindFirstChild("Base")
+                if not basePart then continue end
+                
+                local spawnPart = basePart:FindFirstChild("Spawn")
+                if not spawnPart then continue end
+                
+                local promptAttach = spawnPart:FindFirstChild("PromptAttachment")
+                local prompt = promptAttach and promptAttach:FindFirstChildOfClass("ProximityPrompt")
+                
+                if prompt and (spawnPart.Position - hrp.Position).Magnitude < 15 then
+                    prompt.HoldDuration = 0
+                    fireproximityprompt(prompt)
+                    task.wait(0.15)
+                end
+            end
+        end
+    end)
+end
+
+-- ESP ENEMIGOS (sin cambios)
+local enemyESPs = {}
+local espPlayerAddedConn
+
+function toggleESPEnemigos(enable)
+    if not enable then
+        for _, esp in ipairs(enemyESPs) do pcall(function() esp:Destroy() end) end
+        enemyESPs = {}
+        if espPlayerAddedConn then espPlayerAddedConn:Disconnect() espPlayerAddedConn = nil end
+        return
+    end
+    
+    for _, esp in ipairs(enemyESPs) do pcall(function() esp:Destroy() end) end
+    enemyESPs = {}
+    
+    local function addESP(plr)
+        if plr == LocalPlayer or not plr.Character then return end
+        local char = plr.Character
+        local head = char:FindFirstChild("Head")
+        if not head or head:FindFirstChild("NameESP") then return end
+        
+        local hl = Instance.new("Highlight")
+        hl.FillColor = Color3.fromRGB(255, 80, 80)
+        hl.OutlineColor = Color3.fromRGB(255, 0, 0)
+        hl.FillTransparency = 0.5
+        hl.OutlineTransparency = 0
+        hl.Adornee = char
+        hl.Parent = char
+        table.insert(enemyESPs, hl)
+        
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "NameESP"
+        bb.Adornee = head
+        bb.Size = UDim2.new(0, 120, 0, 30)
+        bb.StudsOffset = Vector3.new(0, 3.2, 0)
+        bb.AlwaysOnTop = true
+        bb.Parent = head
+        
+        local text = Instance.new("TextLabel", bb)
+        text.Size = UDim2.new(1,0,1,0)
+        text.BackgroundTransparency = 1
+        text.Text = plr.Name
+        text.TextColor3 = Color3.new(1,1,1)
+        text.TextStrokeTransparency = 0
+        text.TextSize = 14
+        text.Font = Enum.Font.GothamBold
+        
+        table.insert(enemyESPs, bb)
+    end
+    
+    for _, plr in ipairs(Players:GetPlayers()) do addESP(plr) end
+    
+    espPlayerAddedConn = Players.PlayerAdded:Connect(addESP)
+end
+
+-- ESP BASES X-RAY (sin cambios)
+local baseESPs = {}
+local originalTransparencies = {}
+
+function toggleESPBases(enable)
+    local plots = Workspace:FindFirstChild("Plots")
+    if not plots then return end
+    
+    if not enable then
+        for _, esp in ipairs(baseESPs) do pcall(function() esp:Destroy() end) end
+        baseESPs = {}
+        
+        for plotName, data in pairs(originalTransparencies) do
+            local plot = plots:FindFirstChild(plotName)
+            if plot then
+                for part, originalTrans in pairs(data) do
+                    pcall(function() part.Transparency = originalTrans end)
+                end
+            end
+        end
+        originalTransparencies = {}
+        return
+    end
+    
+    originalTransparencies = {}
+    baseESPs = {}
+    
+    for _, plot in ipairs(plots:GetChildren()) do
+        originalTransparencies[plot.Name] = {}
+        local transTable = originalTransparencies[plot.Name]
+        
+        for _, part in ipairs(plot:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("MeshPart") then
+                if part.Transparency < 0.6 then
+                    transTable[part] = part.Transparency
+                    part.Transparency = 0.68
+                end
+            end
+        end
+        
+        local hl = Instance.new("Highlight")
+        hl.Name = "BaseXRayHighlight"
+        hl.FillColor = Color3.fromRGB(0, 240, 210)
+        hl.OutlineColor = Color3.fromRGB(0, 180, 255)
+        hl.FillTransparency = 0.78
+        hl.OutlineTransparency = 0.15
+        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        hl.Adornee = plot
+        hl.Parent = plot
+        table.insert(baseESPs, hl)
+    end
+end
+
+-- SPEED BOOST (sin cambios)
+local speedConn
+function toggleSpeed(enable)
+    if speedConn then 
+        speedConn:Disconnect() 
+        speedConn = nil 
+    end
+    
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildWhichIsA("Humanoid")
+    
+    if hum then
+        hum.WalkSpeed = 16  -- Siempre reset al cambiar
+    end
+    
+    if not enable then return end
+    
+    speedConn = RunService.Heartbeat:Connect(function()
+        if not toggles.SpeedBoost then
+            if speedConn then speedConn:Disconnect() speedConn = nil end
+            return
+        end
+        
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hum or not hrp then return end
+        
+        if hum.PlatformStand then
+            hum.PlatformStand = false
+        end
+        
+        hum.WalkSpeed = 28
+        
+        if hum.MoveDirection.Magnitude > 0 then
+            local currentVel = hrp.AssemblyLinearVelocity
+            local targetVel = hum.MoveDirection * hum.WalkSpeed
+            hrp.AssemblyLinearVelocity = Vector3.new(targetVel.X, currentVel.Y, targetVel.Z)
+        end
+    end)
+end
+
+-- NUEVA VERSIÓN: INFINITE JUMP (reemplaza totalmente el super salto anterior)
+-- Funciona presionando espacio varias veces seguidas → salta en el aire
+local infJumpConn
+function toggleSuperSalto(enable)
+    if infJumpConn then 
+        infJumpConn:Disconnect() 
+        infJumpConn = nil 
+    end
+    
+    if not enable then return end
+    
+    infJumpConn = UserInputService.JumpRequest:Connect(function()
+        if not toggles.SuperSalto then return end
+        
+        local character = LocalPlayer.Character
+        if not character then return end
+        
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local hrp = character:FindFirstChild("HumanoidRootPart")
+        
+        if not humanoid or not hrp then return end
+        
+        -- Evitamos estados que rompen el salto
+        local state = humanoid:GetState()
+        if state == Enum.HumanoidStateType.Dead then return end
+        
+        if humanoid.PlatformStand then 
+            humanoid.PlatformStand = false 
+        end
+        
+        -- Aplicamos impulso hacia arriba (funciona en aire y en suelo)
+        local currentVel = hrp.AssemblyLinearVelocity
+        hrp.AssemblyLinearVelocity = Vector3.new(currentVel.X, 50, currentVel.Z)  -- 50 es un buen valor alto pero no extremo
+    end)
+end
+
+-- ANTI RAGDOLL (sin cambios)
+local antiRagdollConn
+function toggleAntiRagdoll(enable)
+    if antiRagdollConn then 
+        antiRagdollConn:Disconnect() 
+        antiRagdollConn = nil 
+    end
+    
+    if not enable then 
+        local char = LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildWhichIsA("Humanoid")
+            if hum then
+                hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+                hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+            end
+        end
+        return 
+    end
+    
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChildWhichIsA("Humanoid")
+    
+    if hum then
+        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+    end
+    
+    antiRagdollConn = RunService.Heartbeat:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        
+        local hum = char:FindFirstChildWhichIsA("Humanoid")
+        if not hum then return end
+        
+        if hum.PlatformStand then hum.PlatformStand = false end
+        
+        local state = hum:GetState()
+        
+        if state == Enum.HumanoidStateType.Ragdoll or state == Enum.HumanoidStateType.Physics or state == Enum.HumanoidStateType.FallingDown or state == Enum.HumanoidStateType.Dead then
+            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            
+            task.spawn(function()
+                task.wait(0.01)
+                if hum and hum.Parent then
+                    hum:ChangeState(Enum.HumanoidStateType.Running)
+                end
+            end)
+            
+            task.delay(0.03, function()
+                if hum and hum.Parent and hum:GetState() ~= Enum.HumanoidStateType.Running then
+                    hum:ChangeState(Enum.HumanoidStateType.Running)
+                end
+            end)
+        end
+    end)
+end
+
+-- Re-aplicar al respawn (solo si el toggle está ON)
+LocalPlayer.CharacterAdded:Connect(function(char)
+    task.wait(0.8)
+    
+    local hum = char:WaitForChild("Humanoid", 5)
+    if not hum then return end
+    
+    -- Solo activamos si el toggle está true
+    if toggles.SpeedBoost then toggleSpeed(true) end
+    if toggles.SuperSalto then toggleSuperSalto(true) end
+    if toggles.AntiRagdoll then toggleAntiRagdoll(true) end
+    
+    if toggles.ESPEnemigos then 
+        toggleESPEnemigos(false)
+        task.wait(0.1)
+        toggleESPEnemigos(true)
+    end
+    
+    if toggles.ESPBasesXray then 
+        toggleESPBases(false)
+        task.wait(0.1)
+        toggleESPBases(true)
+    end
+end)
+
+print("Juancho Mods V4 - Cargado! (Super Salto cambiado a Infinite Jump funcional)")
