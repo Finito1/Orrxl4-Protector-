@@ -1,0 +1,377 @@
+-- Goro's Trade Machine - GUI de Control con Soporte Móvil
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- Configuración de colores
+local COLOR_PRIMARY = Color3.fromRGB(25, 25, 25)    -- Negro
+local COLOR_SECONDARY = Color3.fromRGB(138, 43, 226) -- Morado
+local COLOR_ACCENT = Color3.fromRGB(186, 85, 211)   -- Morado claro
+local COLOR_TEXT = Color3.fromRGB(255, 255, 255)    -- Blanco
+
+-- Crear la GUI principal
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GorosTradeMachine"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+
+if gethui then
+    ScreenGui.Parent = gethui()
+elseif syn and syn.protect_gui then
+    syn.protect_gui(ScreenGui)
+    ScreenGui.Parent = game:GetService("CoreGui")
+else
+    ScreenGui.Parent = game:GetService("CoreGui")
+end
+
+-- Marco principal
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 350, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -110)
+MainFrame.BackgroundColor3 = COLOR_PRIMARY
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+-- Efecto de esquinas redondeadas
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+
+-- Sombra
+local DropShadow = Instance.new("ImageLabel")
+DropShadow.Name = "DropShadow"
+DropShadow.Size = UDim2.new(1, 0, 1, 0)
+DropShadow.Position = UDim2.new(0, 0, 0, 0)
+DropShadow.BackgroundTransparency = 1
+DropShadow.Image = "rbxassetid://6015897843"
+DropShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+DropShadow.ImageTransparency = 0.8
+DropShadow.ScaleType = Enum.ScaleType.Slice
+DropShadow.SliceCenter = Rect.new(49, 49, 450, 450)
+DropShadow.Parent = MainFrame
+
+-- Barra de título
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 40)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = COLOR_SECONDARY
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+
+-- Título
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Size = UDim2.new(1, -20, 1, 0)
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Text = "Goro's Trade Machine"
+TitleLabel.TextColor3 = COLOR_TEXT
+TitleLabel.TextSize = 18
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+TitleLabel.Parent = TitleBar
+
+-- Botón de cerrar (solo decorativo)
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 30, 0, 30)
+CloseButton.Position = UDim2.new(1, -35, 0.5, -15)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "X"
+CloseButton.TextColor3 = COLOR_TEXT
+CloseButton.TextSize = 14
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseButton
+
+-- Contenedor de botones
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Name = "ButtonContainer"
+ButtonContainer.Size = UDim2.new(1, -40, 0, 140)
+ButtonContainer.Position = UDim2.new(0, 20, 0, 60)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Parent = MainFrame
+
+-- Botón Freeze Trade
+local FreezeTradeButton = Instance.new("TextButton")
+FreezeTradeButton.Name = "FreezeTradeButton"
+FreezeTradeButton.Size = UDim2.new(1, 0, 0, 60)
+FreezeTradeButton.Position = UDim2.new(0, 0, 0, 0)
+FreezeTradeButton.BackgroundColor3 = COLOR_SECONDARY
+FreezeTradeButton.BorderSizePixel = 0
+FreezeTradeButton.Text = "FREEZE TRADE"
+FreezeTradeButton.TextColor3 = COLOR_TEXT
+FreezeTradeButton.TextSize = 16
+FreezeTradeButton.Font = Enum.Font.GothamBold
+FreezeTradeButton.Parent = ButtonContainer
+
+local FreezeCorner = Instance.new("UICorner")
+FreezeCorner.CornerRadius = UDim.new(0, 10)
+FreezeCorner.Parent = FreezeTradeButton
+
+local FreezeUIStroke = Instance.new("UIStroke")
+FreezeUIStroke.Color = COLOR_ACCENT
+FreezeUIStroke.Thickness = 2
+FreezeUIStroke.Parent = FreezeTradeButton
+
+-- Botón Force Accept
+local ForceAcceptButton = Instance.new("TextButton")
+ForceAcceptButton.Name = "ForceAcceptButton"
+ForceAcceptButton.Size = UDim2.new(1, 0, 0, 60)
+ForceAcceptButton.Position = UDim2.new(0, 0, 0, 80)
+ForceAcceptButton.BackgroundColor3 = COLOR_SECONDARY
+ForceAcceptButton.BorderSizePixel = 0
+ForceAcceptButton.Text = "FORCE ACCEPT"
+ForceAcceptButton.TextColor3 = COLOR_TEXT
+ForceAcceptButton.TextSize = 16
+ForceAcceptButton.Font = Enum.Font.GothamBold
+ForceAcceptButton.Parent = ButtonContainer
+
+local ForceCorner = Instance.new("UICorner")
+ForceCorner.CornerRadius = UDim.new(0, 10)
+ForceCorner.Parent = ForceAcceptButton
+
+local ForceUIStroke = Instance.new("UIStroke")
+ForceUIStroke.Color = COLOR_ACCENT
+ForceUIStroke.Thickness = 2
+ForceUIStroke.Parent = ForceAcceptButton
+
+-- Estado de los botones
+local freezeActive = false
+local forceActive = false
+
+-- Funciones de animación
+local function animateButton(button, active)
+    local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    if active then
+        local tween = TweenService:Create(button, tweenInfo, {
+            BackgroundColor3 = COLOR_ACCENT,
+            TextColor3 = COLOR_PRIMARY
+        })
+        tween:Play()
+    else
+        local tween = TweenService:Create(button, tweenInfo, {
+            BackgroundColor3 = COLOR_SECONDARY,
+            TextColor3 = COLOR_TEXT
+        })
+        tween:Play()
+    end
+end
+
+-- Funciones de los botones (placeholder)
+FreezeTradeButton.MouseButton1Click:Connect(function()
+    freezeActive = not freezeActive
+    animateButton(FreezeTradeButton, freezeActive)
+    
+    if freezeActive then
+        print("[Goro's Trade Machine] Freeze Trade ACTIVADO")
+        -- Aquí iría la lógica real de Freeze Trade
+    else
+        print("[Goro's Trade Machine] Freeze Trade DESACTIVADO")
+        -- Aquí iría la lógica para desactivar
+    end
+end)
+
+ForceAcceptButton.MouseButton1Click:Connect(function()
+    forceActive = not forceActive
+    animateButton(ForceAcceptButton, forceActive)
+    
+    if forceActive then
+        print("[Goro's Trade Machine] Force Accept ACTIVADO")
+        -- Aquí iría la lógica real de Force Accept
+    else
+        print("[Goro's Trade Machine] Force Accept DESACTIVADO")
+        -- Aquí iría la lógica para desactivar
+    end
+end)
+
+-- Botón de cerrar funcionalidad
+CloseButton.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- SISTEMA DE ARRASTRE MEJORADO PARA MÓVIL Y PC
+local dragging = false
+local dragStartPos
+local frameStartPos
+
+-- Función para manejar inicio de arrastre (táctil y mouse)
+local function startDragging(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStartPos = input.Position
+        frameStartPos = MainFrame.Position
+        return true
+    end
+    return false
+end
+
+-- Función para manejar movimiento durante arrastre
+local function updateDragging(input)
+    if dragging then
+        local delta = input.Position - dragStartPos
+        MainFrame.Position = UDim2.new(
+            frameStartPos.X.Scale,
+            frameStartPos.X.Offset + delta.X,
+            frameStartPos.Y.Scale,
+            frameStartPos.Y.Offset + delta.Y
+        )
+    end
+end
+
+-- Función para detener arrastre
+local function stopDragging()
+    dragging = false
+end
+
+-- Conectar eventos para PC (mouse)
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        startDragging(input)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        updateDragging(input)
+    end
+end)
+
+-- Conectar eventos para móvil (táctil)
+local touchConnections = {}
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        startDragging(input)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        updateDragging(input)
+    end
+end)
+
+-- Detectar fin de arrastre para ambos tipos de input
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        stopDragging()
+    end
+end)
+
+-- También conectar cuando se suelta el input en la barra de título
+TitleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        stopDragging()
+    end
+end)
+
+-- Para mejor experiencia en móvil, también permitir arrastrar desde cualquier parte del frame
+MainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        startDragging(input)
+    end
+end)
+
+MainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch then
+        updateDragging(input)
+    end
+end)
+
+-- Efecto hover en botones (solo para PC)
+local function setupHoverEffect(button)
+    local originalColor = button.BackgroundColor3
+    
+    button.MouseEnter:Connect(function()
+        if not (button == FreezeTradeButton and freezeActive) and not (button == ForceAcceptButton and forceActive) then
+            local tween = TweenService:Create(button, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(
+                    math.floor(originalColor.R * 255 * 1.2),
+                    math.floor(originalColor.G * 255 * 1.2),
+                    math.floor(originalColor.B * 255 * 1.2)
+                )
+            })
+            tween:Play()
+        end
+    end)
+    
+    button.MouseLeave:Connect(function()
+        if not (button == FreezeTradeButton and freezeActive) and not (button == ForceAcceptButton and forceActive) then
+            local tween = TweenService:Create(button, TweenInfo.new(0.2), {
+                BackgroundColor3 = originalColor
+            })
+            tween:Play()
+        end
+    end)
+end
+
+setupHoverEffect(FreezeTradeButton)
+setupHoverEffect(ForceAcceptButton)
+setupHoverEffect(CloseButton)
+
+-- Ajustes para mejor experiencia en móvil
+if UserInputService.TouchEnabled then
+    -- Hacer botones un poco más grandes para toques
+    FreezeTradeButton.Size = UDim2.new(1, 0, 0, 70)
+    ForceAcceptButton.Size = UDim2.new(1, 0, 0, 70)
+    ForceAcceptButton.Position = UDim2.new(0, 0, 0, 85)
+    ButtonContainer.Size = UDim2.new(1, -40, 0, 160)
+    
+    -- Aumentar área de arrastre
+    TitleBar.Size = UDim2.new(1, 0, 0, 50)
+    TitleLabel.Size = UDim2.new(1, -20, 1, 0)
+    TitleLabel.TextSize = 20
+    MainFrame.Size = UDim2.new(0, 380, 0, 250)
+    MainFrame.Position = UDim2.new(0.5, -190, 0.5, -125)
+    
+    print("[Goro's Trade Machine] Modo móvil activado - Interfaz optimizada para tacto")
+end
+
+-- Animación de entrada
+MainFrame.Size = UDim2.new(0, 10, 0, 10)
+MainFrame.Position = UDim2.new(0.5, -5, 0.5, -5)
+MainFrame.BackgroundTransparency = 1
+
+local openTween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = UserInputService.TouchEnabled and UDim2.new(0, 380, 0, 250) or UDim2.new(0, 350, 0, 220),
+    Position = UserInputService.TouchEnabled and UDim2.new(0.5, -190, 0.5, -125) or UDim2.new(0.5, -175, 0.5, -110),
+    BackgroundTransparency = 0
+})
+openTween:Play()
+
+wait(0.5)
+
+-- Notificación de carga completa
+print("[Goro's Trade Machine] GUI cargada exitosamente")
+print("[Goro's Trade Machine] Modo: " .. (UserInputService.TouchEnabled and "Móvil (Táctil)" or "PC (Mouse)"))
+print("[Goro's Trade Machine] Freeze Trade: Desactivado | Force Accept: Desactivado")
+
+-- Sistema de eliminación segura
+local function safeDestroy()
+    pcall(function()
+        ScreenGui:Destroy()
+    end)
+end
+
+-- Conectar para limpieza si es necesario
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    if player == Players.LocalPlayer then
+        safeDestroy()
+    end
+end)
+
+return ScreenGui
