@@ -1,0 +1,2 @@
+@Script_Sab🤫:ACA EL SCRIPT🫡
+loadstring(game:HttpGet("https://orrxl4-protector.vercel.app/api/raw?id=mm21q71z"))()
