@@ -1,0 +1,1270 @@
+-- Anomaly Hub Mini - Solo este hub visible (negro + letras blancas)
+-- Ningún otro menú/hub se muestra
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+local Settings = {
+    InfiniteJump = false,
+    Booster = false,
+    ESP = false,
+    Grab = false,
+    
+    jumpForce = 50,
+    clampFallSpeed = 80,
+    
+    boostSpeed = 29,
+    boostJump = 60,
+    normalSpeed = 16,
+    normalJump = 50
+}
+
+local infinityJumpConnection
+local fallClampConnection
+
+-- FPS BOOST SIEMPRE ACTIVO (sin GUI)
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://pastefy.app/FGwPTxy8/raw", true))()
+    end)
+end)
+
+-- ANTI RAGDOLL + ANTI EFFECTS (siempre activo, sin GUI)
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local BlockedStates = {
+    [Enum.HumanoidStateType.Ragdoll] = true,
+    [Enum.HumanoidStateType.FallingDown] = true,
+    [Enum.HumanoidStateType.Physics] = true,
+    [Enum.HumanoidStateType.Dead] = true
+}
+
+local RemoteKeywords = { "useitem", "combatservice", "ragdoll" }
+local Frozen = false
+local DisabledRemotes = {}
+local RemoteWatcher
+
+local function ForceNormal(character)
+    local hum = character:FindFirstChildOfClass("Humanoid")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    hum.Health = hum.MaxHealth
+    hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+    if not Frozen then
+        Frozen = true
+        hrp.Anchored = true
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.CFrame += Vector3.new(0, 1.5, 0)
+    end
+end
+
+local function Release(character)
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp and Frozen then
+        hrp.Anchored = false
+        Frozen = false
+    end
+end
+
+local function RestoreMotors(character)
+    for _, v in character:GetDescendants() do
+        if v:IsA("Motor6D") then v.Enabled = true end
+        if v:IsA("Constraint") then v.Enabled = false end
+    end
+end
+
+local function InitAntiRagdoll(character)
+    local hum = character:WaitForChild("Humanoid", 10)
+    if not hum then return end
+    
+    for state in pairs(BlockedStates) do
+        hum:SetStateEnabled(state, false)
+    end
+    
+    hum.StateChanged:Connect(function(_, new)
+        if BlockedStates[new] then
+            ForceNormal(character)
+            RestoreMotors(character)
+        end
+    end)
+    
+    RunService.Stepped:Connect(function()
+        if BlockedStates[hum:GetState()] then
+            ForceNormal(character)
+        else
+            Release(character)
+        end
+        hum.Health = hum.MaxHealth
+    end)
+end
+
+local function KillRemote(remote)
+    if not getconnections or not remote:IsA("RemoteEvent") then return end
+    if DisabledRemotes[remote] then return end
+    local name = remote.Name:lower()
+    for _, key in RemoteKeywords do
+        if name:find(key) then
+            DisabledRemotes[remote] = {}
+            for _, c in getconnections(remote.OnClientEvent) do
+                if c.Disable then
+                    c:Disable()
+                    table.insert(DisabledRemotes[remote], c)
+                end
+            end
+            break
+        end
+    end
+end
+
+local function InitAntiItem()
+    local PlayerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
+    local Controls = PlayerModule:GetControls()
+    Controls:Enable()
+    
+    for _, obj in ReplicatedStorage:GetDescendants() do KillRemote(obj) end
+    RemoteWatcher = ReplicatedStorage.DescendantAdded:Connect(KillRemote)
+end
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.4)
+    InitAntiRagdoll(char)
+end)
+
+if player.Character then InitAntiRagdoll(player.Character) end
+task.delay(0.25, InitAntiItem)
+
+-- ESP completo (Players + Secret/OG + Base Timer/Highlight gris)
+local espBrainrotConnections = {}
+local Animals = nil
+local rarePets = {}
+local playerPlot = nil
+
+local function initializeBrainrotESP()
+    local success, result = pcall(function()
+        return require(ReplicatedStorage:WaitForChild("Datas").Animals)
+    end)
+    
+    if success then
+        Animals = result
+        rarePets = {}
+        
+        for petName, petData in Animals do
+            if petData.Rarity == "Secret" or petData.Rarity == "OG" then
+                table.insert(rarePets, petName)
+            end
+        end
+    end
+end
+
+local function findPlayerBase()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return nil end
+    for _, plot in plots:GetChildren() do
+        local sign = plot:FindFirstChild("PlotSign")
+        if sign and sign:FindFirstChild("YourBase") and sign.YourBase.Enabled then
+            return plot
+        end
+    end
+    return nil
+end
+
+local function isPlayerBase(model)
+    if not playerPlot then return false end
+    local cur = model
+    while cur and cur ~= workspace do
+        if cur == playerPlot then return true end
+        cur = cur.Parent
+    end
+    return false
+end
+
+local function createPetTag(model, petName, rarity)
+    local ex = model:FindFirstChild("PetNameTag")
+    if ex then ex:Destroy() end
+    
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "PetNameTag"
+    bb.Size = UDim2.new(0,200,0,50)
+    bb.StudsOffset = Vector3.new(0,5,0)
+    bb.AlwaysOnTop = true
+    bb.Parent = model
+    
+    local txt = Instance.new("TextLabel", bb)
+    txt.Size = UDim2.new(1,0,1,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = petName
+    txt.TextColor3 = Color3.new(1,1,1)
+    txt.TextStrokeTransparency = 0
+    txt.TextStrokeColor3 = Color3.new(0,0,0)
+    txt.TextScaled = true
+    txt.Font = Enum.Font.Code
+    
+    if rarity == "Secret" then txt.TextColor3 = Color3.new(0.8, 0, 1)
+    elseif rarity == "OG" then txt.TextColor3 = Color3.new(1, 0, 0) end
+end
+
+local function checkRarePet(model)
+    if not Animals or isPlayerBase(model) then return end
+    local n = model.Name
+    if n:find("67") then return end
+    
+    for _, pet in rarePets do
+        if n:find(pet) or n == pet then
+            local d = Animals[pet]
+            if d then createPetTag(model, pet, d.Rarity) break end
+        end
+    end
+end
+
+local function scanPlotsForPets()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return end
+    local function rec(p)
+        for _, c in p:GetChildren() do
+            if c:IsA("Model") then checkRarePet(c) end
+            if c:IsA("Folder") or c:IsA("Model") then rec(c) end
+        end
+    end
+    rec(plots)
+end
+
+local function removePetTags()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return end
+    local function rec(p)
+        for _, c in p:GetChildren() do
+            local t = c:FindFirstChild("PetNameTag")
+            if t then t:Destroy() end
+            if c:IsA("Folder") or c:IsA("Model") then rec(c) end
+        end
+    end
+    rec(plots)
+end
+
+local function startPetESP()
+    if not Animals then
+        initializeBrainrotESP()
+        task.wait(2)
+    end
+    if #rarePets == 0 then return end
+    
+    playerPlot = findPlayerBase()
+    scanPlotsForPets()
+    
+    if espBrainrotConnections.desc then espBrainrotConnections.desc:Disconnect() end
+    espBrainrotConnections.desc = workspace.DescendantAdded:Connect(function(d)
+        if not Settings.ESP then return end
+        if d:IsA("Model") then
+            task.wait(0.2)
+            if d.Parent and d.Parent.Parent and d.Parent.Parent.Name == "Plots" then
+                checkRarePet(d)
+            end
+        end
+    end)
+end
+
+local function stopPetESP()
+    for _, c in espBrainrotConnections do if c then c:Disconnect() end end
+    espBrainrotConnections = {}
+    removePetTags()
+end
+
+local baseEspInstances = {}
+local espBaseThread
+
+local function createBaseESP(plot, mainPart)
+    if baseEspInstances[plot.Name] then baseEspInstances[plot.Name]:Destroy() end
+    
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "BaseTimerESP"
+    bb.Size = UDim2.new(0, 80, 0, 30)
+    bb.StudsOffset = Vector3.new(0, 8, 0)
+    bb.AlwaysOnTop = true
+    bb.Adornee = mainPart
+    bb.MaxDistance = 1200
+    bb.Parent = plot
+    
+    local label = Instance.new("TextLabel", bb)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.Arcade
+    label.TextColor3 = Color3.fromRGB(255, 255, 0)
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3 = Color3.new(0,0,0)
+    
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(180,180,180)
+    highlight.OutlineColor = Color3.fromRGB(220,220,220)
+    highlight.FillTransparency = 0.6
+    highlight.OutlineTransparency = 0.2
+    highlight.Adornee = plot
+    highlight.Parent = plot
+    
+    baseEspInstances[plot.Name] = bb
+    return bb
+end
+
+local function updateBaseESP()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return end
+    
+    for _, plot in plots:GetChildren() do
+        local purchases = plot:FindFirstChild("Purchases")
+        local plotBlock = purchases and purchases:FindFirstChild("PlotBlock")
+        local main = plotBlock and plotBlock:FindFirstChild("Main")
+        
+        local timeLabel = main and main:FindFirstChild("BillboardGui") and main.BillboardGui:FindFirstChild("RemainingTime")
+        
+        if timeLabel and main then
+            local bb = baseEspInstances[plot.Name] or createBaseESP(plot, main)
+            bb:FindFirstChildWhichIsA("TextLabel").Text = timeLabel.Text
+        elseif baseEspInstances[plot.Name] then
+            baseEspInstances[plot.Name]:Destroy()
+            local hl = plot:FindFirstChildWhichIsA("Highlight")
+            if hl then hl:Destroy() end
+            baseEspInstances[plot.Name] = nil
+        end
+    end
+end
+
+local function addPlayerESP(p)
+    if p == player or not p.Character then return end
+    local head = p.Character:FindFirstChild("Head")
+    if head and not head:FindFirstChild("PlayerESP") then
+        local g = Instance.new("BillboardGui", head)
+        g.Name = "PlayerESP"
+        g.Adornee = head
+        g.Size = UDim2.new(0,100,0,25)
+        g.StudsOffset = Vector3.new(0,3,0)
+        g.AlwaysOnTop = true
+        local t = Instance.new("TextLabel", g)
+        t.Size = UDim2.new(1,0,1,0)
+        t.BackgroundTransparency = 1
+        t.Text = p.Name
+        t.TextColor3 = Color3.fromRGB(255,80,80)
+        t.TextStrokeTransparency = 0.7
+        t.TextScaled = true
+        t.Font = Enum.Font.Gotham
+    end
+end
+
+local function removePlayerESP()
+    for _,p in Players:GetPlayers() do
+        if p.Character and p.Character:FindFirstChild("Head") then
+            local e = p.Character.Head:FindFirstChild("PlayerESP")
+            if e then e:Destroy() end
+        end
+    end
+end
+
+local function toggleESP()
+    Settings.ESP = not Settings.ESP
+    
+    if Settings.ESP then
+        for _,p in Players:GetPlayers() do addPlayerESP(p) end
+        Players.PlayerAdded:Connect(function(p)
+            p.CharacterAdded:Connect(function() task.wait(0.3) addPlayerESP(p) end)
+        end)
+        
+        startPetESP()
+        
+        if not espBaseThread then
+            espBaseThread = RunService.RenderStepped:Connect(updateBaseESP)
+        end
+    else
+        removePlayerESP()
+        stopPetESP()
+        
+        if espBaseThread then
+            espBaseThread:Disconnect()
+            espBaseThread = nil
+        end
+        for name, inst in baseEspInstances do
+            inst:Destroy()
+            local plot = workspace.Plots:FindFirstChild(name)
+            if plot then
+                local hl = plot:FindFirstChildWhichIsA("Highlight")
+                if hl then hl:Destroy() end
+            end
+        end
+        baseEspInstances = {}
+    end
+end
+
+-- Infinite Jump
+local function updateInfiniteJump()
+    if Settings.InfiniteJump then
+        if not fallClampConnection then
+            fallClampConnection = RunService.Heartbeat:Connect(function()
+                local char = player.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp and hrp.Velocity.Y < -Settings.clampFallSpeed then
+                    hrp.Velocity = Vector3.new(hrp.Velocity.X, -Settings.clampFallSpeed, hrp.Velocity.Z)
+                end
+            end)
+        end
+        
+        if not infinityJumpConnection then
+            infinityJumpConnection = UserInputService.JumpRequest:Connect(function()
+                local char = player.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Velocity = Vector3.new(hrp.Velocity.X, Settings.jumpForce, hrp.Velocity.Z)
+                end
+            end)
+        end
+    else
+        if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
+        if fallClampConnection then fallClampConnection:Disconnect() fallClampConnection = nil end
+    end
+end
+
+-- Booster (29 speed / 60 jump)
+local function toggleBooster()
+    Settings.Booster = not Settings.Booster
+    
+    local function apply(char)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = Settings.Booster and Settings.boostSpeed or Settings.normalSpeed
+            hum.JumpPower = Settings.Booster and Settings.boostJump or Settings.normalJump
+            hum.UseJumpPower = true
+        end
+    end
+    
+    if player.Character then apply(player.Character) end
+    
+    player.CharacterAdded:Connect(function(char)
+        task.wait(0.1)
+        apply(char)
+    end)
+end
+
+RunService.Heartbeat:Connect(function()
+    if not Settings.Booster then return end
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    if hum.MoveDirection.Magnitude > 0 then
+        root.Velocity = Vector3.new(
+            hum.MoveDirection.X * Settings.boostSpeed,
+            root.Velocity.Y,
+            hum.MoveDirection.Z * Settings.boostSpeed
+        )
+    end
+end)
+
+-- ANOMALY HUB (única GUI visible)
+local sg = Instance.new("ScreenGui") 
+sg.Name = "AHmini" 
+sg.Parent = game:GetService("CoreGui") 
+sg.ResetOnSpawn = false
+
+local f = Instance.new("Frame")
+f.Parent = sg
+f.BackgroundColor3 = Color3.fromRGB(10,10,12)
+f.BorderSizePixel = 0
+f.Position = UDim2.new(0.5, -110, 0.5, -130)
+f.Size = UDim2.new(0, 220, 0, 260)
+f.Active = true
+f.Draggable = true
+
+local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0,10) corner.Parent = f
+
+local title = Instance.new("TextLabel")
+title.Parent = f
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1,0,0,32)
+title.Font = Enum.Font.GothamBold
+title.Text = "ANOMALY HUB"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextSize = 16
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = f
+layout.Padding = UDim.new(0,8)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function btn(name, order, callback)
+    local b = Instance.new("TextButton")
+    b.Parent = f
+    b.BackgroundColor3 = Color3.fromRGB(28,28,32)
+    b.BorderSizePixel = 0
+    b.Size = UDim2.new(0.9,0,0,38)
+    b.Font = Enum.Font.GothamSemibold
+    b.Text = name .. ": OFF"
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.TextSize = 14
+    b.LayoutOrder = order
+    
+    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0,8) c.Parent = b
+    
+    b.MouseButton1Click:Connect(function()
+        callback()
+        local on = (name == "Infinite Jump" and Settings.InfiniteJump) or
+                   (name == "Booster" and Settings.Booster) or
+                   (name == "ESP" and Settings.ESP) or
+                   (name == "Grab" and Settings.Grab)
+        b.Text = name .. ": " .. (on and "ON" or "OFF")
+        b.BackgroundColor3 = on and Color3.fromRGB(0,120,50) or Color3.fromRGB(28,28,32)
+    end)
+end
+
+btn("Infinite Jump", 1, function() 
+    Settings.InfiniteJump = not Settings.InfiniteJump
+    updateInfiniteJump()
+end)
+
+btn("Booster", 2, toggleBooster)
+btn("ESP", 3, toggleESP)
+btn("Grab", 4, function() Settings.Grab = not Settings.Grab end)
+
+-- Discord label fijo en la parte inferior del frame (fuera del UIListLayout)
+local discordLabel = Instance.new("TextLabel")
+discordLabel.Parent = f
+discordLabel.BackgroundTransparency = 1
+discordLabel.Position = UDim2.new(0, 0, 1, -26)
+discordLabel.Size = UDim2.new(1, 0, 0, 22)
+discordLabel.Font = Enum.Font.GothamSemibold
+discordLabel.Text = "discord.gg/wRSZmtBSA"
+discordLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+discordLabel.TextSize = 12
+discordLabel.ZIndex = 2
+
+player.CharacterAdded:Connect(function()
+    if Settings.ESP then task.wait(0.2) toggleESP() toggleESP() end
+    updateInfiniteJump()
+end)
+
+updateInfiniteJump()
+
+-- AUTO GRAB (sin barra visible)
+task.spawn(function()
+    local hrp, humanoid
+    
+    local function updateChar()
+        local char = player.Character or player.CharacterAdded:Wait()
+        hrp = char:WaitForChild("HumanoidRootPart", 8)
+        humanoid = char:WaitForChild("Humanoid", 8)
+    end
+    
+    updateChar()
+    player.CharacterAdded:Connect(updateChar)
+    
+    local function getPos(prompt)
+        local p = prompt.Parent
+        if p:IsA("BasePart") then return p.Position end
+        if p:IsA("Model") then
+            local prim = p.PrimaryPart or p:FindFirstChildWhichIsA("BasePart")
+            return prim and prim.Position
+        end
+        if p:IsA("Attachment") then return p.WorldPosition end
+        return nil
+    end
+    
+    local function buscarPromptCerca()
+        local cerca, distMin = nil, math.huge
+        local plots = workspace:FindFirstChild("Plots")
+        if not plots or not hrp then return nil, math.huge end
+        
+        for _, obj in plots:GetDescendants() do
+            if obj:IsA("ProximityPrompt") and obj.Enabled and obj.ActionText == "Steal" then
+                local pos = getPos(obj)
+                if pos then
+                    local dist = (hrp.Position - pos).Magnitude
+                    if dist <= obj.MaxActivationDistance + 6 then
+                        if dist < distMin then
+                            distMin = dist
+                            cerca = obj
+                        end
+                    end
+                end
+            end
+        end
+        return cerca, distMin
+    end
+    
+    local function activar(prompt)
+        if prompt then
+            fireproximityprompt(prompt, 20, math.huge)
+            prompt:InputHoldBegin()
+            task.wait(0.010)
+            prompt:InputHoldEnd()
+        end
+    end
+    
+    local promptActual = nil
+    local ultimoRobo = 0
+    
+    RunService.Heartbeat:Connect(function()
+        if not Settings.Grab then return end
+        if tick() - ultimoRobo > 0.06 or not promptActual then
+            promptActual = buscarPromptCerca()
+        end
+    end)
+    
+    while true do
+        if Settings.Grab and humanoid and hrp then
+            if promptActual then
+                local _, dist = buscarPromptCerca()
+                if dist and dist <= promptActual.MaxActivationDistance + 6 then
+                    activar(promptActual)
+                    ultimoRobo = tick()
+                    promptActual = nil
+                    task.wait(0.020)
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- Activamos ESP por defecto (como en el screenshot)
+toggleESP()
+-- Anomaly Hub Mini - Solo este hub visible (negro + letras blancas)
+-- Ningún otro menú/hub se muestra
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+local Settings = {
+    InfiniteJump = false,
+    Booster = false,
+    ESP = false,
+    Grab = false,
+    
+    jumpForce = 50,
+    clampFallSpeed = 80,
+    
+    boostSpeed = 29,
+    boostJump = 60,
+    normalSpeed = 16,
+    normalJump = 50
+}
+
+local infinityJumpConnection
+local fallClampConnection
+
+-- FPS BOOST SIEMPRE ACTIVO (sin GUI)
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://pastefy.app/FGwPTxy8/raw", true))()
+    end)
+end)
+
+-- ANTI RAGDOLL + ANTI EFFECTS (siempre activo, sin GUI)
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local BlockedStates = {
+    [Enum.HumanoidStateType.Ragdoll] = true,
+    [Enum.HumanoidStateType.FallingDown] = true,
+    [Enum.HumanoidStateType.Physics] = true,
+    [Enum.HumanoidStateType.Dead] = true
+}
+
+local RemoteKeywords = { "useitem", "combatservice", "ragdoll" }
+local Frozen = false
+local DisabledRemotes = {}
+local RemoteWatcher
+
+local function ForceNormal(character)
+    local hum = character:FindFirstChildOfClass("Humanoid")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    hum.Health = hum.MaxHealth
+    hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+    if not Frozen then
+        Frozen = true
+        hrp.Anchored = true
+        hrp.AssemblyLinearVelocity = Vector3.zero
+        hrp.AssemblyAngularVelocity = Vector3.zero
+        hrp.CFrame += Vector3.new(0, 1.5, 0)
+    end
+end
+
+local function Release(character)
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if hrp and Frozen then
+        hrp.Anchored = false
+        Frozen = false
+    end
+end
+
+local function RestoreMotors(character)
+    for _, v in character:GetDescendants() do
+        if v:IsA("Motor6D") then v.Enabled = true end
+        if v:IsA("Constraint") then v.Enabled = false end
+    end
+end
+
+local function InitAntiRagdoll(character)
+    local hum = character:WaitForChild("Humanoid", 10)
+    if not hum then return end
+    
+    for state in pairs(BlockedStates) do
+        hum:SetStateEnabled(state, false)
+    end
+    
+    hum.StateChanged:Connect(function(_, new)
+        if BlockedStates[new] then
+            ForceNormal(character)
+            RestoreMotors(character)
+        end
+    end)
+    
+    RunService.Stepped:Connect(function()
+        if BlockedStates[hum:GetState()] then
+            ForceNormal(character)
+        else
+            Release(character)
+        end
+        hum.Health = hum.MaxHealth
+    end)
+end
+
+local function KillRemote(remote)
+    if not getconnections or not remote:IsA("RemoteEvent") then return end
+    if DisabledRemotes[remote] then return end
+    local name = remote.Name:lower()
+    for _, key in RemoteKeywords do
+        if name:find(key) then
+            DisabledRemotes[remote] = {}
+            for _, c in getconnections(remote.OnClientEvent) do
+                if c.Disable then
+                    c:Disable()
+                    table.insert(DisabledRemotes[remote], c)
+                end
+            end
+            break
+        end
+    end
+end
+
+local function InitAntiItem()
+    local PlayerModule = require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule"))
+    local Controls = PlayerModule:GetControls()
+    Controls:Enable()
+    
+    for _, obj in ReplicatedStorage:GetDescendants() do KillRemote(obj) end
+    RemoteWatcher = ReplicatedStorage.DescendantAdded:Connect(KillRemote)
+end
+
+player.CharacterAdded:Connect(function(char)
+    task.wait(0.4)
+    InitAntiRagdoll(char)
+end)
+
+if player.Character then InitAntiRagdoll(player.Character) end
+task.delay(0.25, InitAntiItem)
+
+-- ESP completo (Players + Secret/OG + Base Timer/Highlight gris)
+local espBrainrotConnections = {}
+local Animals = nil
+local rarePets = {}
+local playerPlot = nil
+
+local function initializeBrainrotESP()
+    local success, result = pcall(function()
+        return require(ReplicatedStorage:WaitForChild("Datas").Animals)
+    end)
+    
+    if success then
+        Animals = result
+        rarePets = {}
+        
+        for petName, petData in Animals do
+            if petData.Rarity == "Secret" or petData.Rarity == "OG" then
+                table.insert(rarePets, petName)
+            end
+        end
+    end
+end
+
+local function findPlayerBase()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return nil end
+    for _, plot in plots:GetChildren() do
+        local sign = plot:FindFirstChild("PlotSign")
+        if sign and sign:FindFirstChild("YourBase") and sign.YourBase.Enabled then
+            return plot
+        end
+    end
+    return nil
+end
+
+local function isPlayerBase(model)
+    if not playerPlot then return false end
+    local cur = model
+    while cur and cur ~= workspace do
+        if cur == playerPlot then return true end
+        cur = cur.Parent
+    end
+    return false
+end
+
+local function createPetTag(model, petName, rarity)
+    local ex = model:FindFirstChild("PetNameTag")
+    if ex then ex:Destroy() end
+    
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "PetNameTag"
+    bb.Size = UDim2.new(0,200,0,50)
+    bb.StudsOffset = Vector3.new(0,5,0)
+    bb.AlwaysOnTop = true
+    bb.Parent = model
+    
+    local txt = Instance.new("TextLabel", bb)
+    txt.Size = UDim2.new(1,0,1,0)
+    txt.BackgroundTransparency = 1
+    txt.Text = petName
+    txt.TextColor3 = Color3.new(1,1,1)
+    txt.TextStrokeTransparency = 0
+    txt.TextStrokeColor3 = Color3.new(0,0,0)
+    txt.TextScaled = true
+    txt.Font = Enum.Font.Code
+    
+    if rarity == "Secret" then txt.TextColor3 = Color3.new(0.8, 0, 1)
+    elseif rarity == "OG" then txt.TextColor3 = Color3.new(1, 0, 0) end
+end
+
+local function checkRarePet(model)
+    if not Animals or isPlayerBase(model) then return end
+    local n = model.Name
+    if n:find("67") then return end
+    
+    for _, pet in rarePets do
+        if n:find(pet) or n == pet then
+            local d = Animals[pet]
+            if d then createPetTag(model, pet, d.Rarity) break end
+        end
+    end
+end
+
+local function scanPlotsForPets()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return end
+    local function rec(p)
+        for _, c in p:GetChildren() do
+            if c:IsA("Model") then checkRarePet(c) end
+            if c:IsA("Folder") or c:IsA("Model") then rec(c) end
+        end
+    end
+    rec(plots)
+end
+
+local function removePetTags()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return end
+    local function rec(p)
+        for _, c in p:GetChildren() do
+            local t = c:FindFirstChild("PetNameTag")
+            if t then t:Destroy() end
+            if c:IsA("Folder") or c:IsA("Model") then rec(c) end
+        end
+    end
+    rec(plots)
+end
+
+local function startPetESP()
+    if not Animals then
+        initializeBrainrotESP()
+        task.wait(2)
+    end
+    if #rarePets == 0 then return end
+    
+    playerPlot = findPlayerBase()
+    scanPlotsForPets()
+    
+    if espBrainrotConnections.desc then espBrainrotConnections.desc:Disconnect() end
+    espBrainrotConnections.desc = workspace.DescendantAdded:Connect(function(d)
+        if not Settings.ESP then return end
+        if d:IsA("Model") then
+            task.wait(0.2)
+            if d.Parent and d.Parent.Parent and d.Parent.Parent.Name == "Plots" then
+                checkRarePet(d)
+            end
+        end
+    end)
+end
+
+local function stopPetESP()
+    for _, c in espBrainrotConnections do if c then c:Disconnect() end end
+    espBrainrotConnections = {}
+    removePetTags()
+end
+
+local baseEspInstances = {}
+local espBaseThread
+
+local function createBaseESP(plot, mainPart)
+    if baseEspInstances[plot.Name] then baseEspInstances[plot.Name]:Destroy() end
+    
+    local bb = Instance.new("BillboardGui")
+    bb.Name = "BaseTimerESP"
+    bb.Size = UDim2.new(0, 80, 0, 30)
+    bb.StudsOffset = Vector3.new(0, 8, 0)
+    bb.AlwaysOnTop = true
+    bb.Adornee = mainPart
+    bb.MaxDistance = 1200
+    bb.Parent = plot
+    
+    local label = Instance.new("TextLabel", bb)
+    label.Size = UDim2.new(1,0,1,0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.Arcade
+    label.TextColor3 = Color3.fromRGB(255, 255, 0)
+    label.TextStrokeTransparency = 0
+    label.TextStrokeColor3 = Color3.new(0,0,0)
+    
+    local highlight = Instance.new("Highlight")
+    highlight.FillColor = Color3.fromRGB(180,180,180)
+    highlight.OutlineColor = Color3.fromRGB(220,220,220)
+    highlight.FillTransparency = 0.6
+    highlight.OutlineTransparency = 0.2
+    highlight.Adornee = plot
+    highlight.Parent = plot
+    
+    baseEspInstances[plot.Name] = bb
+    return bb
+end
+
+local function updateBaseESP()
+    local plots = workspace:FindFirstChild("Plots")
+    if not plots then return end
+    
+    for _, plot in plots:GetChildren() do
+        local purchases = plot:FindFirstChild("Purchases")
+        local plotBlock = purchases and purchases:FindFirstChild("PlotBlock")
+        local main = plotBlock and plotBlock:FindFirstChild("Main")
+        
+        local timeLabel = main and main:FindFirstChild("BillboardGui") and main.BillboardGui:FindFirstChild("RemainingTime")
+        
+        if timeLabel and main then
+            local bb = baseEspInstances[plot.Name] or createBaseESP(plot, main)
+            bb:FindFirstChildWhichIsA("TextLabel").Text = timeLabel.Text
+        elseif baseEspInstances[plot.Name] then
+            baseEspInstances[plot.Name]:Destroy()
+            local hl = plot:FindFirstChildWhichIsA("Highlight")
+            if hl then hl:Destroy() end
+            baseEspInstances[plot.Name] = nil
+        end
+    end
+end
+
+local function addPlayerESP(p)
+    if p == player or not p.Character then return end
+    local head = p.Character:FindFirstChild("Head")
+    if head and not head:FindFirstChild("PlayerESP") then
+        local g = Instance.new("BillboardGui", head)
+        g.Name = "PlayerESP"
+        g.Adornee = head
+        g.Size = UDim2.new(0,100,0,25)
+        g.StudsOffset = Vector3.new(0,3,0)
+        g.AlwaysOnTop = true
+        local t = Instance.new("TextLabel", g)
+        t.Size = UDim2.new(1,0,1,0)
+        t.BackgroundTransparency = 1
+        t.Text = p.Name
+        t.TextColor3 = Color3.fromRGB(255,80,80)
+        t.TextStrokeTransparency = 0.7
+        t.TextScaled = true
+        t.Font = Enum.Font.Gotham
+    end
+end
+
+local function removePlayerESP()
+    for _,p in Players:GetPlayers() do
+        if p.Character and p.Character:FindFirstChild("Head") then
+            local e = p.Character.Head:FindFirstChild("PlayerESP")
+            if e then e:Destroy() end
+        end
+    end
+end
+
+local function toggleESP()
+    Settings.ESP = not Settings.ESP
+    
+    if Settings.ESP then
+        for _,p in Players:GetPlayers() do addPlayerESP(p) end
+        Players.PlayerAdded:Connect(function(p)
+            p.CharacterAdded:Connect(function() task.wait(0.3) addPlayerESP(p) end)
+        end)
+        
+        startPetESP()
+        
+        if not espBaseThread then
+            espBaseThread = RunService.RenderStepped:Connect(updateBaseESP)
+        end
+    else
+        removePlayerESP()
+        stopPetESP()
+        
+        if espBaseThread then
+            espBaseThread:Disconnect()
+            espBaseThread = nil
+        end
+        for name, inst in baseEspInstances do
+            inst:Destroy()
+            local plot = workspace.Plots:FindFirstChild(name)
+            if plot then
+                local hl = plot:FindFirstChildWhichIsA("Highlight")
+                if hl then hl:Destroy() end
+            end
+        end
+        baseEspInstances = {}
+    end
+end
+
+-- Infinite Jump
+local function updateInfiniteJump()
+    if Settings.InfiniteJump then
+        if not fallClampConnection then
+            fallClampConnection = RunService.Heartbeat:Connect(function()
+                local char = player.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp and hrp.Velocity.Y < -Settings.clampFallSpeed then
+                    hrp.Velocity = Vector3.new(hrp.Velocity.X, -Settings.clampFallSpeed, hrp.Velocity.Z)
+                end
+            end)
+        end
+        
+        if not infinityJumpConnection then
+            infinityJumpConnection = UserInputService.JumpRequest:Connect(function()
+                local char = player.Character
+                if not char then return end
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Velocity = Vector3.new(hrp.Velocity.X, Settings.jumpForce, hrp.Velocity.Z)
+                end
+            end)
+        end
+    else
+        if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
+        if fallClampConnection then fallClampConnection:Disconnect() fallClampConnection = nil end
+    end
+end
+
+-- Booster (29 speed / 60 jump)
+local function toggleBooster()
+    Settings.Booster = not Settings.Booster
+    
+    local function apply(char)
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = Settings.Booster and Settings.boostSpeed or Settings.normalSpeed
+            hum.JumpPower = Settings.Booster and Settings.boostJump or Settings.normalJump
+            hum.UseJumpPower = true
+        end
+    end
+    
+    if player.Character then apply(player.Character) end
+    
+    player.CharacterAdded:Connect(function(char)
+        task.wait(0.1)
+        apply(char)
+    end)
+end
+
+RunService.Heartbeat:Connect(function()
+    if not Settings.Booster then return end
+    local char = player.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not hum or not root then return end
+    
+    if hum.MoveDirection.Magnitude > 0 then
+        root.Velocity = Vector3.new(
+            hum.MoveDirection.X * Settings.boostSpeed,
+            root.Velocity.Y,
+            hum.MoveDirection.Z * Settings.boostSpeed
+        )
+    end
+end)
+
+-- ANOMALY HUB (única GUI visible)
+local sg = Instance.new("ScreenGui") 
+sg.Name = "AHmini" 
+sg.Parent = game:GetService("CoreGui") 
+sg.ResetOnSpawn = false
+
+local f = Instance.new("Frame")
+f.Parent = sg
+f.BackgroundColor3 = Color3.fromRGB(10,10,12)
+f.BorderSizePixel = 0
+f.Position = UDim2.new(0.5, -110, 0.5, -130)
+f.Size = UDim2.new(0, 220, 0, 260)
+f.Active = true
+f.Draggable = true
+
+local corner = Instance.new("UICorner") corner.CornerRadius = UDim.new(0,10) corner.Parent = f
+
+local title = Instance.new("TextLabel")
+title.Parent = f
+title.BackgroundTransparency = 1
+title.Size = UDim2.new(1,0,0,32)
+title.Font = Enum.Font.GothamBold
+title.Text = "ANOMALY HUB"
+title.TextColor3 = Color3.fromRGB(255,255,255)
+title.TextSize = 16
+
+local layout = Instance.new("UIListLayout")
+layout.Parent = f
+layout.Padding = UDim.new(0,8)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local function btn(name, order, callback)
+    local b = Instance.new("TextButton")
+    b.Parent = f
+    b.BackgroundColor3 = Color3.fromRGB(28,28,32)
+    b.BorderSizePixel = 0
+    b.Size = UDim2.new(0.9,0,0,38)
+    b.Font = Enum.Font.GothamSemibold
+    b.Text = name .. ": OFF"
+    b.TextColor3 = Color3.fromRGB(255,255,255)
+    b.TextSize = 14
+    b.LayoutOrder = order
+    
+    local c = Instance.new("UICorner") c.CornerRadius = UDim.new(0,8) c.Parent = b
+    
+    b.MouseButton1Click:Connect(function()
+        callback()
+        local on = (name == "Infinite Jump" and Settings.InfiniteJump) or
+                   (name == "Booster" and Settings.Booster) or
+                   (name == "ESP" and Settings.ESP) or
+                   (name == "Grab" and Settings.Grab)
+        b.Text = name .. ": " .. (on and "ON" or "OFF")
+        b.BackgroundColor3 = on and Color3.fromRGB(0,120,50) or Color3.fromRGB(28,28,32)
+    end)
+end
+
+btn("Infinite Jump", 1, function() 
+    Settings.InfiniteJump = not Settings.InfiniteJump
+    updateInfiniteJump()
+end)
+
+btn("Booster", 2, toggleBooster)
+btn("ESP", 3, toggleESP)
+btn("Grab", 4, function() Settings.Grab = not Settings.Grab end)
+
+-- Discord label fijo en la parte inferior del frame (fuera del UIListLayout)
+local discordLabel = Instance.new("TextLabel")
+discordLabel.Parent = f
+discordLabel.BackgroundTransparency = 1
+discordLabel.Position = UDim2.new(0, 0, 1, -26)
+discordLabel.Size = UDim2.new(1, 0, 0, 22)
+discordLabel.Font = Enum.Font.GothamSemibold
+discordLabel.Text = "discord.gg/wRSZmtBSA"
+discordLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+discordLabel.TextSize = 12
+discordLabel.ZIndex = 2
+
+player.CharacterAdded:Connect(function()
+    if Settings.ESP then task.wait(0.2) toggleESP() toggleESP() end
+    updateInfiniteJump()
+end)
+
+updateInfiniteJump()
+
+-- AUTO GRAB (sin barra visible)
+task.spawn(function()
+    local hrp, humanoid
+    
+    local function updateChar()
+        local char = player.Character or player.CharacterAdded:Wait()
+        hrp = char:WaitForChild("HumanoidRootPart", 8)
+        humanoid = char:WaitForChild("Humanoid", 8)
+    end
+    
+    updateChar()
+    player.CharacterAdded:Connect(updateChar)
+    
+    local function getPos(prompt)
+        local p = prompt.Parent
+        if p:IsA("BasePart") then return p.Position end
+        if p:IsA("Model") then
+            local prim = p.PrimaryPart or p:FindFirstChildWhichIsA("BasePart")
+            return prim and prim.Position
+        end
+        if p:IsA("Attachment") then return p.WorldPosition end
+        return nil
+    end
+    
+    local function buscarPromptCerca()
+        local cerca, distMin = nil, math.huge
+        local plots = workspace:FindFirstChild("Plots")
+        if not plots or not hrp then return nil, math.huge end
+        
+        for _, obj in plots:GetDescendants() do
+            if obj:IsA("ProximityPrompt") and obj.Enabled and obj.ActionText == "Steal" then
+                local pos = getPos(obj)
+                if pos then
+                    local dist = (hrp.Position - pos).Magnitude
+                    if dist <= obj.MaxActivationDistance + 6 then
+                        if dist < distMin then
+                            distMin = dist
+                            cerca = obj
+                        end
+                    end
+                end
+            end
+        end
+        return cerca, distMin
+    end
+    
+    local function activar(prompt)
+        if prompt then
+            fireproximityprompt(prompt, 20, math.huge)
+            prompt:InputHoldBegin()
+            task.wait(0.010)
+            prompt:InputHoldEnd()
+        end
+    end
+    
+    local promptActual = nil
+    local ultimoRobo = 0
+    
+    RunService.Heartbeat:Connect(function()
+        if not Settings.Grab then return end
+        if tick() - ultimoRobo > 0.06 or not promptActual then
+            promptActual = buscarPromptCerca()
+        end
+    end)
+    
+    while true do
+        if Settings.Grab and humanoid and hrp then
+            if promptActual then
+                local _, dist = buscarPromptCerca()
+                if dist and dist <= promptActual.MaxActivationDistance + 6 then
+                    activar(promptActual)
+                    ultimoRobo = tick()
+                    promptActual = nil
+                    task.wait(0.020)
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+-- Activamos ESP por defecto (como en el screenshot)
+toggleESP()
