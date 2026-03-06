@@ -1,0 +1,303 @@
+-- Goro's Trade Machine V2.0 - Diseño Premium
+-- Script para Roblox (Executor)
+
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Crear ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "GorosTradeMachineV2"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = PlayerGui
+
+-- Marco principal con gradiente
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 450, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -125)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+
+-- Gradiente decorativo
+local Gradient = Instance.new("UIGradient")
+Gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 120, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(150, 80, 255))
+})
+Gradient.Rotation = 45
+Gradient.Parent = MainFrame
+
+-- Barra de título con efecto neon
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 45)
+TitleBar.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 2
+TitleBar.Parent = MainFrame
+
+-- Título con estilo llamativo
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Size = UDim2.new(1, -20, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "GORO'S TRADE MACHINE V2.0"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 22
+Title.Font = Enum.Font.GothamBlack
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TitleBar
+
+-- Subtexto decorativo
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Name = "Subtitle"
+Subtitle.Size = UDim2.new(1, -20, 0, 20)
+Subtitle.Position = UDim2.new(0, 10, 1, -20)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "TRADE CONTROL SYSTEM"
+Subtitle.TextColor3 = Color3.fromRGB(180, 180, 255)
+Subtitle.TextSize = 14
+Subtitle.Font = Enum.Font.Gotham
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.Parent = TitleBar
+
+-- Línea neon bajo el título
+local Line = Instance.new("Frame")
+Line.Name = "Line"
+Line.Size = UDim2.new(1, 0, 0, 3)
+Line.Position = UDim2.new(0, 0, 1, 0)
+Line.BackgroundColor3 = Color3.fromRGB(100, 150, 255)
+Line.BorderSizePixel = &nbsp;0
+Line.ZIndex = 3
+Line.Parent = TitleBar
+
+-- Contenedor de botones
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Name = "ButtonContainer"
+ButtonContainer.Size = UDim2.new(1, -50, 0, 100)
+ButtonContainer.Position = UDim2.new(0, 25, 0, 80)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.Parent = MainFrame
+
+-- Botón izquierdo (Freeze Trade) - Diseño premium
+local FreezeButton = Instance.new("TextButton")
+FreezeButton.Name = "FreezeButton"
+FreezeButton.Size = UDim2.new(0.45, 0, 1, 0)
+FreezeButton.Position = UDim2.new(0, 0, 0, 0)
+FreezeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+FreezeButton.BorderSizePixel = 0
+FreezeButton.Text = ""
+FreezeButton.Parent = ButtonContainer
+
+-- Texto dentro del botón Freeze
+local FreezeText = Instance.new("TextLabel")
+FreezeText.Name = "FreezeText"
+FreezeText.Size = UDim2.new(1, 0, 0.7, 0)
+FreezeText.Position = UDim2.new(0, 0, 0, 15)
+FreezeText.BackgroundTransparency = 1
+FreezeText.Text = "FREEZE TRADE"
+FreezeText.TextColor3 = Color3.fromRGB(255, 255, 255)
+FreezeText.TextSize = 20
+FreezeText.Font = Enum.Font.GothamBold
+FreezeText.TextXAlignment = Enum.TextXAlignment.Center
+FreezeText.Parent = FreezeButton
+
+-- Indicador circular CENTRADO para Freeze Trade
+local FreezeIndicator = Instance.new("Frame")
+FreezeIndicator.Name = "FreezeIndicator"
+FreezeIndicator.Size = UDim2.new(0, 30, 0, 30)
+FreezeIndicator.Position = UDim2.new(0.5, -15, 0.9, -15)
+FreezeIndicator.AnchorPoint = Vector2.new(0.5, 0.5)
+FreezeIndicator.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+FreezeIndicator.BorderSizePixel = 0
+FreezeIndicator.ZIndex = 2
+FreezeIndicator.Parent = FreezeButton
+
+-- Efecto de brillo alrededor del indicador
+local FreezeGlow = Instance.new("ImageLabel")
+FreezeGlow.Name = "FreezeGlow"
+FreezeGlow.Size = UDim2.new(1, 10, 1, 10)
+FreezeGlow.Position = UDim2.new(0, -5, 0, -5)
+FreezeGlow.BackgroundTransparency = 1
+FreezeGlow.Image = "rbxassetid://5554237731"
+FreezeGlow.ImageColor3 = Color3.fromRGB(255, 60, 60)
+FreezeGlow.ImageTransparency = 0.6
+FreezeGlow.ScaleType = Enum.ScaleType.Slice
+FreezeGlow.SliceCenter = Rect.new(23, 23, 277, 277)
+FreezeGlow.Parent = FreezeIndicator
+
+-- Hacerlo circular perfecto
+local FreezeUICorner = Instance.new("UICorner")
+FreezeUICorner.CornerRadius = UDim.new(1, 0)
+FreezeUICorner.Parent = FreezeIndicator
+
+-- Botón derecho (Force Accept) - Diseño premium
+local AcceptButton = Instance.new("TextButton")
+AcceptButton.Name = "AcceptButton"
+AcceptButton.Size = UDim2.new(0.45, 0, 1, 0)
+AcceptButton.Position = UDim2.new(0.55, 0, 0, 0)
+AcceptButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+AcceptButton.BorderSizePixel = 0
+AcceptButton.Text = ""
+AcceptButton.Parent = ButtonContainer
+
+-- Texto dentro del botón Accept
+local AcceptText = Instance.new("TextLabel")
+AcceptText.Name = "AcceptText"
+AcceptText.Size = UDim2.new(1, 0, 0.7, 0)
+AcceptText.Position = UDim2.new(0, 0, 0, 15)
+AcceptText.BackgroundTransparency = 1
+AcceptText.Text = "FORCE ACCEPT"
+AcceptText.TextColor3 = Color3.fromRGB(255, 255, 255)
+AcceptText.TextSize = 20
+AcceptText.Font = Enum.Font.GothamBold
+AcceptText.TextXAlignment = Enum.TextXAlignment.Center
+AcceptText.Parent = AcceptButton
+
+-- Indicador circular CENTRADO para Force Accept
+local AcceptIndicator = Instance.new("Frame")
+AcceptIndicator.Name = "AcceptIndicator"
+AcceptIndicator.Size = UDim2.new(0, 30, 0, 30)
+AcceptIndicator.Position = UDim2.new(0.5, -15, 0.9, -15)
+AcceptIndicator.AnchorPoint = Vector2.new(0.5, 0.5)
+AcceptIndicator.BackgroundColor3 = Color3.fromRGB(255, 60, 60)
+AcceptIndicator.BorderSizePixel = 0
+AcceptIndicator.ZIndex = 2
+AcceptIndicator.Parent = AcceptButton
+
+-- Efecto de brillo alrededor del indicador
+local AcceptGlow = Instance.new("ImageLabel")
+AcceptGlow.Name = "AcceptGlow"
+AcceptGlow.Size = UDim2.new(1, 10, 1, 10)
+AcceptGlow.Position = UDim2.new(0, -5, 0, -5)
+AcceptGlow.BackgroundTransparency = 1
+AcceptGlow.Image = "rbxassetid://5554237731"
+AcceptGlow.ImageColor3 = Color3.fromRGB(255, 60, 60)
+AcceptGlow.ImageTransparency = 0.6
+AcceptGlow.ScaleType = Enum.ScaleType.Slice
+AcceptGlow.SliceCenter = Rect.new(23, 23, 277, 277)
+AcceptGlow.Parent = AcceptIndicator
+
+-- Hacerlo circular perfecto
+local AcceptUICorner = Instance.new("UICorner")
+AcceptUICorner.CornerRadius = UDim.new(1, 0)
+AcceptUICorner.Parent = AcceptIndicator
+
+-- Esquinas redondeadas para el marco principal
+local MainUICorner = Instance.new("UICorner")
+MainUICorner.CornerRadius = UDim.new(0, 12)
+MainUICorner.Parent = MainFrame
+
+-- Esquinas redondeadas para los botones
+local ButtonUICorner = Instance.new("UICorner")
+ButtonUICorner.CornerRadius = UDim.new(0, 10)
+ButtonUICorner.Parent = FreezeButton
+
+local ButtonUICorner2 = Instance.new("UICorner")
+ButtonUICorner2.CornerRadius = UDim.new(0, 10)
+ButtonUICorner2.Parent = AcceptButton
+
+-- Efectos hover premium
+FreezeButton.MouseEnter:Connect(function()
+    TweenService:Create(FreezeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 90)}):Play()
+    TweenService:Create(FreezeText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(220, 220, 255)}):Play()
+end)
+
+FreezeButton.MouseLeave:Connect(function()
+    TweenService:Create(FreezeButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 60)}):Play()
+    TweenService:Create(FreezeText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+end)
+
+AcceptButton.MouseEnter:Connect(function()
+    TweenService:Create(AcceptButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(60, 60, 90)}):Play()
+    TweenService:Create(AcceptText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(220, 220, 255)}):Play()
+end)
+
+AcceptButton.MouseLeave:Connect(function()
+    TweenService:Create(AcceptButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 60)}):Play()
+    TweenService:Create(AcceptText, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+end)
+
+-- Estados de los botones (toggle)
+local FreezeActive = false
+local AcceptActive = false
+
+FreezeButton.MouseButton1Click:Connect(function()
+    FreezeActive = not FreezeActive
+    TweenService:Create(FreezeIndicator, TweenInfo.new(0.3), {
+        BackgroundColor3 = FreezeActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 60, 60)
+    }):Play()
+    TweenService:Create(FreezeGlow, TweenInfo.new(0.3), {
+        ImageColor3 = FreezeActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 60, 60)
+    }):Play()
+    -- Aquí iría la funcionalidad real de "Freeze Trade"
+end)
+
+AcceptButton.MouseButton1Click:Connect(function()
+    AcceptActive = not AcceptActive
+    TweenService:Create(AcceptIndicator, TweenInfo.new(0.3), {
+        BackgroundColor3 = AcceptActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 60, 60)
+    }):Play()
+    TweenService:Create(AcceptGlow, TweenInfo.new(0.3), {
+        ImageColor3 = AcceptActive and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(255, 60, 60)
+    }):Play()
+    -- Aquí iría la funcionalidad real de "Force Accept"
+end)
+
+-- Animación de entrada espectacular
+MainFrame.Size = UDim2.new(0, 10, 0, 10)
+MainFrame.Position = UDim2.new(0.5, -5, 0.5, -5)
+MainFrame.BackgroundTransparency = 1
+MainFrame.Visible = false
+
+wait(0.1)
+
+MainFrame.Visible = true
+
+local OpenTween1 = TweenService:Create(MainFrame, TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+    Size = UDim2.new(0, 450, 0, 250),
+    Position = UDim2.new(0.5, -225, 0.5, -125),
+    BackgroundTransparency = 0
+})
+OpenTween1:Play()
+
+-- Efecto de aparición del gradiente
+wait(0.3)
+local GradientTween = TweenService:Create(Gradient, TweenInfo.new(0.5), {
+    Rotation = 180
+})
+GradientTween:Play()
+
+-- Animación de los indicadores (pulsación inicial)
+wait(0.5)
+TweenService:Create(FreezeIndicator, TweenInfo.new(0.4, Enum.EasingStyle.Elastic), {
+    Size = UDim2.new(0, 35, 0, 35),
+    Position = UDim2.new(0.5, -17.5, 0.9, -17.5)
+}):Play()
+TweenService:Create(AcceptIndicator, TweenInfo.new(0.4, Enum.EasingStyle.Elastic), {
+    Size = UDim2.new(0, 35, 0, 35),
+    Position = UDim2.new(0.5, -17.5, 0.9, -17.5)
+}):Play()
+
+wait(0.4)
+TweenService:Create(FreezeIndicator, TweenInfo.new(0.3), {
+    Size = UDim2.new(0, 30, 0, 30),
+    Position = UDim2.new(0.5, -15, 0.9, -15)
+}):Play()
+TweenService:Create(AcceptIndicator, TweenInfo.new(0.3), {
+    Size = UDim2.new(0, 30, 0, 30),
+    Position = UDim2.new(0.5, -15, 0.9, -15)
+}):Play()
+
+print("Goro's Trade Machine V2.0 Premium loaded!")
