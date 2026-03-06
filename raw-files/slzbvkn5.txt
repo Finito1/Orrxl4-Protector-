@@ -1,0 +1,128 @@
+--// INVISIBLE ADMIN PANEL – TRUE RESPAWN TP
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+--------------------------------------------------
+-- GUI
+--------------------------------------------------
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "AdminPanel"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 460, 0, 300)
+main.Position = UDim2.new(0.5, -230, 0.5, -150)
+main.BackgroundColor3 = Color3.fromRGB(0,255,150)
+main.Active = true
+main.Draggable = true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0,20)
+
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 5
+stroke.Color = Color3.new(0,0,0)
+
+local gradient = Instance.new("UIGradient", main)
+gradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0,255,170)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0,120,80))
+}
+
+local function styleText(obj)
+	obj.Font = Enum.Font.Montserrat
+	obj.TextColor3 = Color3.new(1,1,1)
+	obj.TextScaled = true
+	local s = Instance.new("UIStroke", obj)
+	s.Thickness = 3
+	s.Color = Color3.new(0,0,0)
+end
+
+-- TITLE
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1,0,0,40)
+title.BackgroundTransparency = 1
+title.Text = "INVISIBLE GUI"
+styleText(title)
+
+-- TEXTBOX
+local box = Instance.new("TextBox", main)
+box.Size = UDim2.new(0.8,0,0,45)
+box.Position = UDim2.new(0.1,0,0.6,0)
+box.PlaceholderText = "Enter command..."
+box.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Instance.new("UICorner", box)
+Instance.new("UIStroke", box).Thickness = 3
+styleText(box)
+
+-- START BUTTON
+local startBtn = Instance.new("TextButton", main)
+startBtn.Size = UDim2.new(0.35,0,0,45)
+startBtn.Position = UDim2.new(0.1,0,0.8,0)
+startBtn.Text = "▶ Start"
+startBtn.BackgroundColor3 = Color3.fromRGB(0,200,120)
+Instance.new("UICorner", startBtn)
+Instance.new("UIStroke", startBtn).Thickness = 3
+styleText(startBtn)
+
+-- STOP BUTTON
+local stopBtn = Instance.new("TextButton", main)
+stopBtn.Size = UDim2.new(0.35,0,0,45)
+stopBtn.Position = UDim2.new(0.55,0,0.8,0)
+stopBtn.Text = "⛔ Stop"
+stopBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
+Instance.new("UICorner", stopBtn)
+Instance.new("UIStroke", stopBtn).Thickness = 3
+styleText(stopBtn)
+
+--------------------------------------------------
+-- RESPAWN POSITION SYSTEM
+--------------------------------------------------
+
+local lastRespawnCFrame = nil
+
+local function saveRespawnPosition(character)
+	local hrp = character:WaitForChild("HumanoidRootPart")
+
+	-- czekamy aż Roblox ustawi finalną pozycję
+	task.wait(0.3)
+
+	lastRespawnCFrame = hrp.CFrame
+end
+
+-- przy każdym respawnie zapisujemy pozycję
+player.CharacterAdded:Connect(function(char)
+	saveRespawnPosition(char)
+end)
+
+-- jeśli już istnieje postać
+if player.Character then
+	saveRespawnPosition(player.Character)
+end
+
+--------------------------------------------------
+-- COMMANDS
+--------------------------------------------------
+
+startBtn.MouseButton1Click:Connect(function()
+	local text = string.lower(box.Text)
+
+	if text == "/tptobase" then
+		if lastRespawnCFrame then
+			local char = player.Character
+			if char then
+				char:PivotTo(lastRespawnCFrame)
+			end
+		end
+	end
+end)
+
+stopBtn.MouseButton1Click:Connect(function()
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.WalkSpeed = 16
+		hum.JumpPower = 50
+	end
+end)
