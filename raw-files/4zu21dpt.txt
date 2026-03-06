@@ -1,0 +1,93 @@
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- 1. Criação do Container
+local ScreenGui = Instance.new("ScreenGui", playerGui)
+ScreenGui.Name = "SynapseXMobile"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local Frame = Instance.new("Frame", ScreenGui)
+Frame.Name = "MainFrame"
+Frame.Size = UDim2.new(0, 464, 0, 248)
+Frame.Position = UDim2.new(0.5, -232, 0.5, -124)
+Frame.BackgroundColor3 = Color3.fromRGB(124, 124, 124)
+Frame.BorderSizePixel = 0
+Frame.Active = true -- Essencial para não passar o clique pro jogo
+
+-- 2. Lógica de Arrastar (Drag)
+local dragging, dragStart, startPos
+Frame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Frame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- 3. Elementos da Interface
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(0, 200, 0, 30)
+Title.Position = UDim2.new(0, 124, 0, 0)
+Title.Text = "Synapse X"
+Title.BackgroundColor3 = Color3.fromRGB(124, 124, 124)
+
+local Editor = Instance.new("TextBox", Frame)
+Editor.Size = UDim2.new(0, 310, 0, 174)
+Editor.Position = UDim2.new(0, 10, 0, 26)
+Editor.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+Editor.PlaceholderText = "-- Script aqui"
+Editor.TextColor3 = Color3.new(1, 1, 1)
+
+local Scroll = Instance.new("ScrollingFrame", Frame)
+Scroll.Size = UDim2.new(0, 120, 0, 174)
+Scroll.Position = UDim2.new(0, 336, 0, 26)
+Scroll.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+
+-- Função para criar botões com funcionalidade
+local function createBtn(text, size, pos, color, action)
+    local btn = Instance.new("TextButton", Frame)
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.Active = true
+    btn.MouseButton1Click:Connect(action)
+    return btn
+end
+
+-- Botões
+createBtn("Execute", UDim2.new(0, 88, 0, 30), UDim2.new(0, 10, 0, 210), Color3.fromRGB(108, 108, 108), function()
+    pcall(loadstring(Editor.Text))
+end)
+
+createBtn("Clear", UDim2.new(0, 88, 0, 30), UDim2.new(0, 106, 0, 210), Color3.fromRGB(108, 108, 108), function()
+    Editor.Text = ""
+end)
+
+createBtn("Save File", UDim2.new(0, 88, 0, 30), UDim2.new(0, 202, 0, 210), Color3.fromRGB(108, 108, 108), function()
+    -- Adicionar lógica de salvamento aqui
+end)
+
+createBtn("Attach", UDim2.new(0, 88, 0, 30), UDim2.new(0, 352, 0, 210), Color3.fromRGB(7, 181, 221), function()
+    print("Synapse Attached")
+end)
+
+-- Botões de Controle (Min/Close)
+local Close = createBtn("x", UDim2.new(0, 22, 0, 18), UDim2.new(0, 440, 0, 2), Color3.fromRGB(114, 114, 114), function()
+    ScreenGui:Destroy()
+end)
