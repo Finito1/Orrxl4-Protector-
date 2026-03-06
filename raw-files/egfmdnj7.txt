@@ -1,0 +1,224 @@
+--// ADMIN PANEL BY CZLOWIEK Z AMBICJA
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "AdminPanel"
+gui.ResetOnSpawn = false
+gui.Parent = player:WaitForChild("PlayerGui")
+
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 420, 0, 260)
+main.Position = UDim2.new(0.5, -210, 0.5, -130)
+main.BackgroundColor3 = Color3.fromRGB(0,255,120)
+main.Active = true
+main.Draggable = true
+
+local stroke = Instance.new("UIStroke", main)
+stroke.Thickness = 5
+stroke.Color = Color3.new(0,0,0)
+
+local gradient = Instance.new("UIGradient", main)
+gradient.Color = ColorSequence.new{
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(0,255,120)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0,150,80))
+}
+
+-- X
+local close = Instance.new("TextButton", main)
+close.Size = UDim2.new(0,30,0,30)
+close.Position = UDim2.new(1,-35,0,5)
+close.Text = "X"
+close.BackgroundColor3 = Color3.fromRGB(255,60,60)
+close.TextColor3 = Color3.new(1,1,1)
+
+-- -
+local minimize = Instance.new("TextButton", main)
+minimize.Size = UDim2.new(0,30,0,30)
+minimize.Position = UDim2.new(1,-70,0,5)
+minimize.Text = "-"
+minimize.BackgroundColor3 = Color3.fromRGB(200,200,0)
+
+-- Cat button
+local cat = Instance.new("TextButton", main)
+cat.Size = UDim2.new(0,40,0,40)
+cat.Position = UDim2.new(0,10,0,10)
+cat.Text = "🐱"
+cat.TextScaled = true
+
+-- Commands list
+local listFrame = Instance.new("Frame", main)
+listFrame.Size = UDim2.new(0.8,0,0.5,0)
+listFrame.Position = UDim2.new(0.1,0,0.2,0)
+listFrame.Visible = false
+listFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+
+local listLabel = Instance.new("TextLabel", listFrame)
+listLabel.Size = UDim2.new(1,0,1,0)
+listLabel.TextColor3 = Color3.new(1,1,1)
+listLabel.TextScaled = true
+listLabel.BackgroundTransparency = 1
+listLabel.Text = "/fly\n/tptobase\n/tpfuse\n/speed\n/jump\n/god\n/unlockprompt"
+
+-- TextBox
+local box = Instance.new("TextBox", main)
+box.Size = UDim2.new(0.8,0,0,40)
+box.Position = UDim2.new(0.1,0,0.7,0)
+box.PlaceholderText = "Enter command..."
+box.TextScaled = true
+box.BackgroundColor3 = Color3.fromRGB(30,30,30)
+box.TextColor3 = Color3.new(1,1,1)
+
+-- Start button
+local startBtn = Instance.new("TextButton", main)
+startBtn.Size = UDim2.new(0.35,0,0,40)
+startBtn.Position = UDim2.new(0.1,0,0.88,0)
+startBtn.Text = "▶ Start Command"
+startBtn.TextScaled = true
+startBtn.BackgroundColor3 = Color3.fromRGB(0,255,120)
+
+local sGrad = Instance.new("UIGradient", startBtn)
+sGrad.Color = gradient.Color
+
+local sStroke = Instance.new("UIStroke", startBtn)
+sStroke.Thickness = 5
+sStroke.Color = Color3.new(0,0,0)
+
+-- Stop button
+local stopBtn = Instance.new("TextButton", main)
+stopBtn.Size = UDim2.new(0.35,0,0,40)
+stopBtn.Position = UDim2.new(0.55,0,0.88,0)
+stopBtn.Text = "⛔ Stop Command"
+stopBtn.TextScaled = true
+stopBtn.BackgroundColor3 = Color3.fromRGB(255,80,80)
+
+-- VARIABLES
+local flying = false
+local flyBV, flyBG
+local godMode = false
+
+-- FUNCTIONS
+
+local function getChar()
+	return player.Character or player.CharacterAdded:Wait()
+end
+
+local function fly()
+	if flying then return end
+	flying = true
+	
+	local char = getChar()
+	local hrp = char:WaitForChild("HumanoidRootPart")
+	local hum = char:WaitForChild("Humanoid")
+	
+	flyBV = Instance.new("BodyVelocity", hrp)
+	flyBV.MaxForce = Vector3.new(9e9,9e9,9e9)
+	flyBV.Velocity = Vector3.new(0,0,0)
+	
+	flyBG = Instance.new("BodyGyro", hrp)
+	flyBG.MaxTorque = Vector3.new(9e9,9e9,9e9)
+	flyBG.CFrame = hrp.CFrame
+	
+	hum.PlatformStand = true
+	
+	UIS.InputBegan:Connect(function(i,g)
+		if g then return end
+		if i.KeyCode == Enum.KeyCode.W then
+			flyBV.Velocity = hrp.CFrame.LookVector * 80
+		end
+	end)
+end
+
+local function unfly()
+	flying = false
+	local char = getChar()
+	local hum = char:FindFirstChildOfClass("Humanoid")
+	if flyBV then flyBV:Destroy() end
+	if flyBG then flyBG:Destroy() end
+	if hum then hum.PlatformStand = false end
+end
+
+local function god()
+	local hum = getChar():WaitForChild("Humanoid")
+	hum.MaxHealth = 10000
+	hum.Health = 10000
+	godMode = true
+end
+
+local function ungod()
+	local hum = getChar():WaitForChild("Humanoid")
+	hum.MaxHealth = 100
+	hum.Health = 100
+	godMode = false
+end
+
+local function unlockPrompt()
+	for _,v in pairs(workspace:GetDescendants()) do
+		if v:IsA("ProximityPrompt") then
+			v.HoldDuration = 0
+		end
+	end
+end
+
+-- COMMAND EXECUTION
+startBtn.MouseButton1Click:Connect(function()
+	local text = box.Text
+	
+	if text == "/fly" then
+		fly()
+	elseif text == "/tptobase" then
+		local char = getChar()
+		char:MoveTo(player.RespawnLocation and player.RespawnLocation.Position or Vector3.new(0,5,0))
+	elseif text == "/tpfuse" then
+		local fuse = workspace:FindFirstChild("FuseMachine", true)
+		if fuse then
+			getChar():MoveTo(fuse:GetModelCFrame().Position)
+		end
+	elseif string.find(text, "/speed") then
+		local num = tonumber(string.split(text," ")[2])
+		if num and num >=1 and num <=500 then
+			getChar():WaitForChild("Humanoid").WalkSpeed = num
+		end
+	elseif string.find(text, "/jump") then
+		local num = tonumber(string.split(text," ")[2])
+		if num and num >=1 and num <=500 then
+			getChar():WaitForChild("Humanoid").JumpPower = num
+		end
+	elseif text == "/god" then
+		god()
+	elseif text == "/unlockprompt" then
+		unlockPrompt()
+	end
+end)
+
+stopBtn.MouseButton1Click:Connect(function()
+	unfly()
+	ungod()
+	getChar():WaitForChild("Humanoid").WalkSpeed = 16
+	getChar():WaitForChild("Humanoid").JumpPower = 50
+end)
+
+cat.MouseButton1Click:Connect(function()
+	listFrame.Visible = not listFrame.Visible
+end)
+
+close.MouseButton1Click:Connect(function()
+	gui:Destroy()
+end)
+
+local minimized = false
+minimize.MouseButton1Click:Connect(function()
+	main.Visible = false
+	minimized = true
+end)
+
+UIS.InputBegan:Connect(function(input,gp)
+	if gp then return end
+	if input.KeyCode == Enum.KeyCode.RightShift and minimized then
+		main.Visible = true
+		minimized = false
+	end
+end)
