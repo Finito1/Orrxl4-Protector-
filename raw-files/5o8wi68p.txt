@@ -1,0 +1,460 @@
+-- ONYX HUB 
+-- Version 9.0: The "Iron Mass" Update
+-- Author: Itzmegaming92 / Ideas: greenthing/idkwdyd
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local CoreGui = game:GetService("CoreGui")
+
+local lp = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+
+-- [[ CONFIGURATION ]] --
+local OnyxConfig = {
+    JumpPower = 50,
+    InfJump = false,
+    InvisibleMode = false,
+    
+    InstantGrab = false,
+    AutoSteal = false,
+    
+    BrainrotDropEnabled = false,
+    FakeLagEnabled = false,
+    FakeLag = false,
+    
+    AntiRagdoll = false, 
+    AntiNegative = false,
+    
+    PlayerESP = false,
+    XrayBases = false,
+    FlingOnTouch = false
+}
+
+-- [[ UI LIBRARY ]] --
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "OnyxHub_v9"
+ScreenGui.Parent = CoreGui
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+local function MakeDraggable(frame, handle)
+    local dragging, dragInput, dragStart, startPos
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
+
+-- Floating Toggle Button
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Name = "OnyxToggle"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
+ToggleBtn.Position = UDim2.new(0, 50, 0.5, 0)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+ToggleBtn.Text = "ONYX"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 12
+ToggleBtn.Visible = false 
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
+MakeDraggable(ToggleBtn, ToggleBtn)
+
+-- Brainrot Drop Button (Non-Draggable)
+local DropBtn = Instance.new("TextButton")
+DropBtn.Name = "DropBrainrotBtn"
+DropBtn.Parent = ScreenGui
+DropBtn.Size = UDim2.new(0, 140, 0, 40)
+DropBtn.Position = UDim2.new(0.8, 0, 0.7, 0)
+DropBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+DropBtn.Text = "Drop Brainrot"
+DropBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+DropBtn.Font = Enum.Font.GothamBold
+DropBtn.TextSize = 13
+DropBtn.Visible = false
+Instance.new("UICorner", DropBtn).CornerRadius = UDim.new(0, 8)
+
+DropBtn.MouseButton1Click:Connect(function()
+    if lp.Character then
+        -- FIXED: Only checks Character to drop currently held item, ignoring the Backpack completely
+        local tool = lp.Character:FindFirstChildOfClass("Tool")
+        if tool then
+            tool.Parent = workspace
+            local handle = tool:FindFirstChild("Handle") or tool:FindFirstChildWhichIsA("BasePart")
+            if handle then
+                handle.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
+                handle.Velocity = Vector3.new(0, 10, 0)
+            end
+        end
+    end
+end)
+
+-- Fake Lag Button (Non-Draggable)
+local FakeLagUiBtn = Instance.new("TextButton")
+FakeLagUiBtn.Name = "FakeLagBtn"
+FakeLagUiBtn.Parent = ScreenGui
+FakeLagUiBtn.Size = UDim2.new(0, 140, 0, 40)
+FakeLagUiBtn.Position = UDim2.new(0.8, 0, 0.8, 0)
+FakeLagUiBtn.BackgroundColor3 = Color3.fromRGB(170, 0, 255)
+FakeLagUiBtn.Text = "Hold: Fake Lag"
+FakeLagUiBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FakeLagUiBtn.Font = Enum.Font.GothamBold
+FakeLagUiBtn.TextSize = 13
+FakeLagUiBtn.Visible = false
+Instance.new("UICorner", FakeLagUiBtn).CornerRadius = UDim.new(0, 8)
+
+FakeLagUiBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        OnyxConfig.FakeLag = true
+    end
+end)
+FakeLagUiBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        OnyxConfig.FakeLag = false
+    end
+end)
+
+-- Main Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 12)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
+MainFrame.Size = UDim2.new(0, 600, 0, 400)
+MainFrame.Visible = false
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+local TopBar = Instance.new("Frame", MainFrame)
+TopBar.Size = UDim2.new(1, 0, 0, 40)
+TopBar.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+MakeDraggable(MainFrame, TopBar)
+
+local Title = Instance.new("TextLabel", TopBar)
+Title.Text = "ONYX HUB"
+Title.TextColor3 = Color3.fromRGB(170, 0, 255)
+Title.Font = Enum.Font.GothamBold
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+
+local Sidebar = Instance.new("Frame", MainFrame)
+Sidebar.Position = UDim2.new(0, 0, 0, 40)
+Sidebar.Size = UDim2.new(0, 140, 1, -40)
+Sidebar.BackgroundColor3 = Color3.fromRGB(12, 12, 15)
+Instance.new("UIListLayout", Sidebar)
+
+local Container = Instance.new("Frame", MainFrame)
+Container.Position = UDim2.new(0, 140, 0, 40)
+Container.Size = UDim2.new(1, -140, 1, -40)
+Container.BackgroundTransparency = 1
+
+local OnyxUI = {}
+function OnyxUI:CreateTab(name)
+    local btn = Instance.new("TextButton", Sidebar)
+    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.BackgroundTransparency = 1
+    
+    local page = Instance.new("ScrollingFrame", Container)
+    page.Size = UDim2.new(1, 0, 1, 0)
+    page.Visible = false
+    page.BackgroundTransparency = 1
+    page.ScrollBarThickness = 2
+    Instance.new("UIListLayout", page).Padding = UDim.new(0, 5)
+    
+    btn.MouseButton1Click:Connect(function()
+        for _, v in pairs(Container:GetChildren()) do v.Visible = false end
+        page.Visible = true
+    end)
+    return page
+end
+
+function OnyxUI:CreateToggle(parent, text, callback)
+    local frame = Instance.new("TextButton", parent)
+    frame.Size = UDim2.new(1, -10, 0, 35)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    frame.Text = "  " .. text
+    frame.TextColor3 = Color3.fromRGB(255, 255, 255)
+    frame.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner", frame)
+    
+    local state = false
+    frame.MouseButton1Click:Connect(function()
+        state = not state
+        frame.BackgroundColor3 = state and Color3.fromRGB(170, 0, 255) or Color3.fromRGB(20, 20, 25)
+        callback(state)
+    end)
+end
+
+-- Function to pop up "Not finished" red text
+local function ShowNotFinished()
+    local msg = Instance.new("TextLabel", ScreenGui)
+    msg.Text = "Not finished"
+    msg.TextColor3 = Color3.fromRGB(255, 0, 0)
+    msg.Size = UDim2.new(0, 200, 0, 50)
+    msg.Position = UDim2.new(0.5, -100, 0.8, 0)
+    msg.BackgroundTransparency = 1
+    msg.Font = Enum.Font.GothamBold
+    msg.TextSize = 25
+    msg.ZIndex = 100
+    task.spawn(function()
+        task.wait(2)
+        if msg then msg:Destroy() end
+    end)
+end
+
+-- [[ TABS ]] --
+local MainTab = OnyxUI:CreateTab("Main")
+local PlayerTab = OnyxUI:CreateTab("Player")
+local CombatTab = OnyxUI:CreateTab("Combat")
+local VisualTab = OnyxUI:CreateTab("Visuals")
+
+-- [[ FEATURES ]] --
+local duelBtn = Instance.new("TextButton", MainTab)
+duelBtn.Size = UDim2.new(1, -10, 0, 40)
+duelBtn.Text = "For duels only"
+duelBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+duelBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", duelBtn)
+duelBtn.MouseButton1Click:Connect(function() lp:Kick("Under Maintenance") end)
+
+OnyxUI:CreateToggle(MainTab, "Instant Grab", function(v) OnyxConfig.InstantGrab = v end)
+OnyxUI:CreateToggle(MainTab, "Auto Steal Nearby", function(v) OnyxConfig.AutoSteal = v end)
+
+-- DO NOT TOGGLE Warning Text
+local warnLabel = Instance.new("TextLabel", MainTab)
+warnLabel.Size = UDim2.new(1, -10, 0, 20)
+warnLabel.BackgroundTransparency = 1
+warnLabel.Text = "DO NOT TOGGLE ON INSTANT STEAL AND STEAL NEARBY AT SAME TIME"
+warnLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+warnLabel.Font = Enum.Font.GothamBold
+warnLabel.TextSize = 10
+warnLabel.TextWrapped = true
+warnLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+OnyxUI:CreateToggle(MainTab, "Show Drop Brainrot Btn", function(v) 
+    if v then 
+        ShowNotFinished() 
+    end
+end)
+
+OnyxUI:CreateToggle(MainTab, "Anti Ragdoll", function(v) 
+    if v then 
+        ShowNotFinished() 
+    end
+end)
+
+OnyxUI:CreateToggle(MainTab, "Anti Negative Screen", function(v) OnyxConfig.AntiNegative = v end)
+
+-- Copy TikTok Button
+local tiktokBtn = Instance.new("TextButton", MainTab)
+tiktokBtn.Size = UDim2.new(1, -10, 0, 35)
+tiktokBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+tiktokBtn.Text = "  Copy TikTok"
+tiktokBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+tiktokBtn.Font = Enum.Font.Gotham
+tiktokBtn.TextSize = 14
+tiktokBtn.TextXAlignment = Enum.TextXAlignment.Left
+Instance.new("UICorner", tiktokBtn)
+tiktokBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard("https://www.tiktok.com/@fire.dowt?_r=1&_t=ZP-94RnkuU7rhu")
+    end
+end)
+
+OnyxUI:CreateToggle(PlayerTab, "Infinite Jump (Safe)", function(v) OnyxConfig.InfJump = v end)
+
+-- Speed Coming Soon Text
+local speedLabel = Instance.new("TextLabel", PlayerTab)
+speedLabel.Size = UDim2.new(1, -10, 0, 20)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed coming soon"
+speedLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextSize = 12
+speedLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+OnyxUI:CreateToggle(PlayerTab, "Show Fake Lag Btn", function(v) 
+    OnyxConfig.FakeLagEnabled = v 
+    FakeLagUiBtn.Visible = v
+end)
+
+OnyxUI:CreateToggle(CombatTab, "Fling on Touch", function(v) OnyxConfig.FlingOnTouch = v end)
+OnyxUI:CreateToggle(CombatTab, "Invisible (Ghost Mode)", function(v) 
+    OnyxConfig.InvisibleMode = v 
+    if not v and lp.Character then
+        for _, part in pairs(lp.Character:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                part.Transparency = 0
+            end
+        end
+    end
+end)
+
+OnyxUI:CreateToggle(VisualTab, "Player Highlights", function(v) OnyxConfig.PlayerESP = v end)
+OnyxUI:CreateToggle(VisualTab, "X-Ray Bases", function(v) 
+    OnyxConfig.XrayBases = v 
+    for _, obj in pairs(workspace:GetDescendants()) do
+        if obj.Name:lower():find("base") and obj:IsA("BasePart") then obj.LocalTransparencyModifier = v and 0.7 or 0 end
+    end
+end)
+
+-- [[ CORE LOGIC ]] --
+
+-- This part runs every frame inside the RunService.Stepped connection
+RunService.Stepped:Connect(function()
+    if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = lp.Character.HumanoidRootPart
+        
+        -- Fake Lag Logic:
+        -- If enabled, it forces the HumanoidRootPart to stay anchored (frozen in space)
+        if OnyxConfig.FakeLag then
+            hrp.Anchored = true
+        else
+            -- Ensure it unanchors when the toggle is turned off
+            hrp.Anchored = false
+        end
+    end
+    
+    -- Anti-Ragdoll logic kept in stepped to ensure it doesn't kill you
+    if lp.Character and lp.Character:FindFirstChild("Humanoid") then
+        local hum = lp.Character.Humanoid
+        if OnyxConfig.AntiRagdoll then
+            hum.PlatformStand = false
+            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            if hum:GetState() == Enum.HumanoidStateType.Ragdoll then
+                hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+            end
+        end
+    end
+end)
+
+-- Render Loop for Physics/Visuals
+RunService.RenderStepped:Connect(function()
+    if not lp.Character or not lp.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = lp.Character.HumanoidRootPart
+    
+    -- REAL Fling on Touch Fix: Heavy Anchor Bypass
+    if OnyxConfig.FlingOnTouch then
+        local targetNear = false
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                if (hrp.Position - p.Character.HumanoidRootPart.Position).Magnitude < 4.5 then
+                    targetNear = true
+                    break
+                end
+            end
+        end
+
+        if targetNear then
+            -- Apply infinite mass to obliterate anyone who touches you
+            hrp.CustomPhysicalProperties = PhysicalProperties.new(math.huge, 0.3, 0.5, 1, 1)
+            -- Spin fast enough to break their physics
+            hrp.AssemblyAngularVelocity = Vector3.new(0, 75000, 0)
+            -- Force your character downwards so the collision impact doesn't send YOU to the moon
+            hrp.AssemblyLinearVelocity = Vector3.new(0, -100, 0)
+        else
+            -- Instantly reset so you can walk completely normally when nobody is touching you
+            hrp.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 1, 1)
+        end
+    else
+        -- Ensure properties reset if toggled off mid-fling
+        if hrp.CustomPhysicalProperties and hrp.CustomPhysicalProperties.Density == math.huge then
+            hrp.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 1, 1)
+        end
+    end
+
+    -- Invisible Mode
+    if OnyxConfig.InvisibleMode then
+        for _, part in pairs(lp.Character:GetDescendants()) do
+            if part:IsA("BasePart") or part:IsA("Decal") then
+                if part.Name ~= "HumanoidRootPart" then part.Transparency = 1 end
+            end
+        end
+    end
+
+    -- Anti Negative
+    if OnyxConfig.AntiNegative then
+        Lighting.Brightness = 2
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("ColorCorrectionEffect") or v:IsA("BlurEffect") then v.Enabled = false end
+        end
+        lp.PlayerGui:SetAttribute("InvertedControls", false)
+        camera.FieldOfView = 70
+    end
+end)
+
+-- Infinite Jump
+UserInputService.JumpRequest:Connect(function()
+    if OnyxConfig.InfJump and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        lp.Character.HumanoidRootPart.CFrame = lp.Character.HumanoidRootPart.CFrame * CFrame.new(0, 2, 0)
+    end
+end)
+
+-- Interaction Loops
+task.spawn(function()
+    while task.wait(0.05) do
+        if OnyxConfig.InstantGrab or OnyxConfig.AutoSteal then
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then
+                    v.HoldDuration = 0
+                    if OnyxConfig.AutoSteal and (v.Parent.Position - lp.Character.HumanoidRootPart.Position).Magnitude < 12 then
+                        fireproximityprompt(v)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ESP
+RunService.RenderStepped:Connect(function()
+    if OnyxConfig.PlayerESP then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= lp and p.Character then
+                local h = p.Character:FindFirstChild("OnyxHighlight") or Instance.new("Highlight", p.Character)
+                h.Name = "OnyxHighlight"; h.FillColor = Color3.fromRGB(170, 0, 255); h.Enabled = true
+            end
+        end
+    end
+end)
+
+-- [[ INTRO ]] --
+task.spawn(function()
+    local intro = Instance.new("Frame", ScreenGui); intro.Size = UDim2.new(1,0,1,0); intro.BackgroundTransparency = 1
+    local txt = Instance.new("TextLabel", intro); txt.Size = UDim2.new(1,0,1,0); txt.BackgroundTransparency = 1
+    txt.TextColor3 = Color3.fromRGB(170, 0, 255); txt.Font = Enum.Font.GothamBold; txt.TextSize = 40; txt.TextTransparency = 1
+    local function Say(s)
+        txt.Text = s
+        TweenService:Create(txt, TweenInfo.new(1), {TextTransparency = 0}):Play()
+        task.wait(2)
+        TweenService:Create(txt, TweenInfo.new(1), {TextTransparency = 1}):Play()
+        task.wait(1)
+    end
+    Say("Welcome To Onyx")
+    Say("Script made by Itzmegaming92")
+    Say("Ideas by greenthing/idkwdyd")
+    intro:Destroy()
+    ToggleBtn.Visible = true; MainFrame.Visible = true
+end)
