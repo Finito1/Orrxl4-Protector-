@@ -1,0 +1,250 @@
+--// CypherProtect v3
+
+local function safe(f,...)
+    local s,r = pcall(f,...)
+    if s then return r end
+end
+
+local function isInstance(o)
+    return typeof(o) == "Instance"
+end
+
+-- Basic environment validation
+local function checkEnvironment()
+
+    if typeof(game) ~= "Instance" then
+        return false
+    end
+
+    local ws = safe(function()
+        return workspace.ClassName
+    end)
+
+    if ws ~= "Workspace" then
+        return false
+    end
+
+    local Players = safe(game.GetService,game,"Players")
+    if not Players or not isInstance(Players) then
+        return false
+    end
+
+    local lp = Players.LocalPlayer
+    if not lp then
+        return false
+    end
+
+    return true
+end
+
+-- Service integrity
+local function checkServices()
+
+    local required = {
+        "Players",
+        "RunService",
+        "Workspace",
+        "ReplicatedStorage",
+        "TeleportService"
+    }
+
+    for _,s in ipairs(required) do
+
+        local serv = safe(game.GetService,game,s)
+
+        if not serv or not isInstance(serv) then
+            return false
+        end
+
+        local cn = safe(function()
+            return serv.ClassName
+        end)
+
+        if not cn or cn == "" then
+            return false
+        end
+    end
+
+    return true
+end
+
+-- primitive check
+local function checkPrimitives()
+
+    if string.char(65,66,67) ~= "ABC" then
+        return false
+    end
+
+    if table.concat({"x","y","z"}) ~= "xyz" then
+        return false
+    end
+
+    local fn = loadstring("return 99")
+
+    if not fn then
+        return false
+    end
+
+    if fn() ~= 99 then
+        return false
+    end
+
+    return true
+end
+
+-- metatable hook detection
+local function checkMetatable()
+
+    local mt = safe(getrawmetatable,game)
+    if not mt then
+        return false
+    end
+
+    if type(mt.__namecall) ~= "function" then
+        return false
+    end
+
+    if mt.__index and type(mt.__index) ~= "function" and type(mt.__index) ~= "table" then
+        return false
+    end
+
+    return true
+end
+
+-- timing hook detection
+local function checkTiming()
+
+    local function test(a)
+        return a+1
+    end
+
+    local start = os.clock()
+
+    for i=1,5000 do
+        test(i)
+    end
+
+    local t = os.clock()-start
+
+    if t > 0.25 then
+        return false
+    end
+
+    return true
+end
+
+-- detect heavy getgc scanning
+local function detectGcScan()
+
+    local ok,gc = pcall(getgc,true)
+
+    if ok and type(gc) == "table" then
+
+        if #gc > 8000 then
+            return false
+        end
+
+    end
+
+    return true
+end
+
+-- detect debug abuse
+local function detectDebug()
+
+    if debug then
+
+        local di = debug.info
+
+        if di then
+            local ok,res = pcall(di,1,"s")
+
+            if ok and type(res) == "string" then
+                if res:find("exploit") or res:find("dump") then
+                    return false
+                end
+            end
+        end
+
+    end
+
+    return true
+end
+
+-- detect function dumper
+local function detectFunctionScan()
+
+    if not getgc then
+        return true
+    end
+
+    local ok,gc = pcall(getgc)
+
+    if not ok then
+        return true
+    end
+
+    local count = 0
+
+    for _,v in ipairs(gc) do
+        if type(v) == "function" then
+            count += 1
+        end
+    end
+
+    if count > 4000 then
+        return false
+    end
+
+    return true
+end
+
+-- master detection
+local function isCompromised()
+
+    if not checkEnvironment() then
+        return true
+    end
+
+    if not checkServices() then
+        return true
+    end
+
+    if not checkPrimitives() then
+        return true
+    end
+
+    if not checkMetatable() then
+        return true
+    end
+
+    if not checkTiming() then
+        return true
+    end
+
+    if not detectGcScan() then
+        return true
+    end
+
+    if not detectDebug() then
+        return true
+    end
+
+    if not detectFunctionScan() then
+        return true
+    end
+
+    return false
+end
+
+-- protection
+if isCompromised() then
+
+    local p = game:GetService("Players").LocalPlayer
+
+    p:Kick("[CypherProtect] Script Logger / Dumper Detected")
+
+    return
+end
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Roman666Cabj/Cypher/refs/heads/main/Cypher%20Hub.lua.txt"))()
