@@ -1,0 +1,391 @@
+-- Goro's Trade Machine V2.0 - GUI Mejorada
+-- GUI móvil INDIVIDUAL con sistema de arrastre funcional
+
+local Player = game.Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- Crear la GUI principal
+local MainGUI = Instance.new("ScreenGui")
+MainGUI.Name = "GorosTradeMachineV2"
+MainGUI.Parent = CoreGui
+MainGUI.ResetOnSpawn = false
+MainGUI.IgnoreGuiInset = true
+
+-- Crear marco principal con animación de entrada
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 400, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -110)
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = MainGUI
+
+-- Agregar esquinas redondeadas
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 12)
+Corner.Parent = MainFrame
+
+-- Agregar sombra/drop shadow profesional
+local Shadow = Instance.new("ImageLabel")
+Shadow.Name = "Shadow"
+Shadow.Size = UDim2.new(1, 20, 1, 20)
+Shadow.Position = UDim2.new(0, -10, 0, -10)
+Shadow.Image = "rbxassetid://5554237734"
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.4
+Shadow.ScaleType = Enum.ScaleType.Slice
+Shadow.SliceCenter = Rect.new(10, 10, 90, 90)
+Shadow.BackgroundTransparency = 1
+Shadow.Parent = MainFrame
+
+-- Título de la GUI con efecto brillante (ÁREA DE ARRASTRE)
+local TitleLabel = Instance.new("TextLabel")
+TitleLabel.Name = "Title"
+TitleLabel.Size = UDim2.new(1, -20, 0, 45)
+TitleLabel.Position = UDim2.new(0, 10, 0, 10)
+TitleLabel.Text = "GORO'S TRADE MACHINE V2.0"
+TitleLabel.TextColor3 = Color3.fromRGB(220, 180, 255)
+TitleLabel.TextSize = 22
+TitleLabel.Font = Enum.Font.GothamBlack
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.TextStrokeTransparency = 0.7
+TitleLabel.TextStrokeColor3 = Color3.fromRGB(100, 50, 150)
+TitleLabel.Active = true -- Permitir input
+TitleLabel.Selectable = true -- Permitir selección
+TitleLabel.Parent = MainFrame
+
+-- Marco invisible para arrastre en el área del título
+local DragArea = Instance.new("Frame")
+DragArea.Name = "DragArea"
+DragArea.Size = UDim2.new(1, -20, 0, 45)
+DragArea.Position = UDim2.new(0, 10, 0, 10)
+DragArea.BackgroundTransparency = 1
+DragArea.BorderSizePixel = 0
+DragArea.Active = true
+DragArea.Selectable = true
+DragArea.Parent = MainFrame
+
+-- Subtitle con efecto neon
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Name = "Subtitle"
+Subtitle.Size = UDim2.new(1, -20, 0, 20)
+Subtitle.Position = UDim2.new(0, 10, 0, 50)
+Subtitle.Text = "ADVANCED TRADE MACHINE SCRIPT"
+Subtitle.TextColor3 = Color3.fromRGB(180, 150, 220)
+Subtitle.TextSize = 11
+Subtitle.Font = Enum.Font.GothamBold
+Subtitle.BackgroundTransparency = 1
+Subtitle.TextStrokeTransparency = 0.8
+Subtitle.TextStrokeColor3 = Color3.fromRGB(80, 40, 120)
+Subtitle.Parent = MainFrame
+
+-- Contenedor para botones e indicadores
+local ControlsFrame = Instance.new("Frame")
+ControlsFrame.Name = "ControlsFrame"
+ControlsFrame.Size = UDim2.new(1, -30, 0, 120)
+ControlsFrame.Position = UDim2.new(0, 15, 0, 85)
+ControlsFrame.BackgroundTransparency = 1
+ControlsFrame.Parent = MainFrame
+
+-- Botón "Freeze Trade" con diseño llamativo
+local FreezeButton = Instance.new("TextButton")
+FreezeButton.Name = "FreezeTradeBtn"
+FreezeButton.Size = UDim2.new(0, 160, 0, 45)
+FreezeButton.Position = UDim2.new(0, 0, 0, 10)
+FreezeButton.Text = "❄️ FREEZE TRADE ❄️"
+FreezeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FreezeButton.TextSize = 16
+FreezeButton.Font = Enum.Font.GothamBlack
+FreezeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+FreezeButton.BorderSizePixel = 0
+FreezeButton.AutoButtonColor = false
+FreezeButton.Parent = ControlsFrame
+
+-- Efectos de botón Freeze
+local FreezeCorner = Instance.new("UICorner")
+FreezeCorner.CornerRadius = UDim.new(0, 8)
+FreezeCorner.Parent = FreezeButton
+
+local FreezeGradient = Instance.new("UIGradient")
+FreezeGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 60, 100)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 70))
+})
+FreezeGradient.Rotation = 90
+FreezeGradient.Parent = FreezeButton
+
+-- Indicador circular para Freeze Trade (rojo = off, verde = on) - POSICIÓN ABAJO
+local FreezeIndicator = Instance.new("Frame")
+FreezeIndicator.Name = "FreezeIndicator"
+FreezeIndicator.Size = UDim2.new(0, 20, 0, 20)
+FreezeIndicator.Position = UDim2.new(0, 70, 0, 70)
+FreezeIndicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+FreezeIndicator.BorderSizePixel = 0
+FreezeIndicator.ZIndex = 2
+FreezeIndicator.Parent = ControlsFrame
+
+-- Hacerlo circular con borde
+local FreezeCircle = Instance.new("UICorner")
+FreezeCircle.CornerRadius = UDim.new(1, 0)
+FreezeCircle.Parent = FreezeIndicator
+
+local FreezeBorder = Instance.new("UIStroke")
+FreezeBorder.Color = Color3.fromRGB(255, 255, 255)
+FreezeBorder.Thickness = 2
+FreezeBorder.Parent = FreezeIndicator
+
+-- Texto de estado para Freeze - POSICIÓN ABAJO
+local FreezeStatus = Instance.new("TextLabel")
+FreezeStatus.Name = "FreezeStatus"
+FreezeStatus.Size = UDim2.new(0, 80, 0, 20)
+FreezeStatus.Position = UDim2.new(0, 95, 0, 68)
+FreezeStatus.Text = "OFFLINE"
+FreezeStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+FreezeStatus.TextSize = 12
+FreezeStatus.Font = Enum.Font.GothamBold
+FreezeStatus.BackgroundTransparency = 1
+FreezeStatus.Parent = ControlsFrame
+
+-- Separador visual entre controles
+local Separator = Instance.new("Frame")
+Separator.Name = "Separator"
+Separator.Size = UDim2.new(0, 3, 0, 100)
+Separator.Position = UDim2.new(0.5, -1.5, 0, 10)
+Separator.BackgroundColor3 = Color3.fromRGB(70, 60, 100)
+Separator.BorderSizePixel = 0
+Separator.Parent = ControlsFrame
+
+-- Botón "Force Accept" con diseño llamativo
+local ForceButton = Instance.new("TextButton")
+ForceButton.Name = "ForceAcceptBtn"
+ForceButton.Size = UDim2.new(0, 160, 0, 45)
+ForceButton.Position = UDim2.new(1, -160, 0, 10)
+ForceButton.Text = "⚡ FORCE ACCEPT ⚡"
+ForceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ForceButton.TextSize = 16
+ForceButton.Font = Enum.Font.GothamBlack
+ForceButton.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+ForceButton.BorderSizePixel = 0
+ForceButton.AutoButtonColor = false
+ForceButton.Parent = ControlsFrame
+
+-- Efectos de botón Force
+local ForceCorner = Instance.new("UICorner")
+ForceCorner.CornerRadius = UDim.new(0, 8)
+ForceCorner.Parent = ForceButton
+
+local ForceGradient = Instance.new("UIGradient")
+ForceGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(100, 60, 60)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 40, 40))
+})
+ForceGradient.Rotation = 90
+ForceGradient.Parent = ForceButton
+
+-- Indicador circular para Force Accept (rojo = off, verde = on) - POSICIÓN ABAJO
+local ForceIndicator = Instance.new("Frame")
+ForceIndicator.Name = "ForceIndicator"
+ForceIndicator.Size = UDim2.new(0, 20, 0, 20)
+ForceIndicator.Position = UDim2.new(1, -110, 0, 70)
+ForceIndicator.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+ForceIndicator.BorderSizePixel = 0
+ForceIndicator.ZIndex = 2
+ForceIndicator.Parent = ControlsFrame
+
+-- Hacerlo circular con borde
+local ForceCircle = Instance.new("UICorner")
+ForceCircle.CornerRadius = UDim.new(1, 0)
+ForceCircle.Parent = ForceIndicator
+
+local ForceBorder = Instance.new("UIStroke")
+ForceBorder.Color = Color3.fromRGB(255, 255, 255)
+ForceBorder.Thickness = 2
+ForceBorder.Parent = ForceIndicator
+
+-- Texto de estado para Force - POSICIÓN ABAJO
+local ForceStatus = Instance.new("TextLabel")
+ForceStatus.Name = "ForceStatus"
+ForceStatus.Size = UDim2.new(0, 80, 0, 20)
+ForceStatus.Position = UDim2.new(1, -85, 0, 68)
+ForceStatus.Text = "OFFLINE"
+ForceStatus.TextColor3 = Color3.fromRGB(255, 80, 80)
+ForceStatus.TextSize = 12
+ForceStatus.Font = Enum.Font.GothamBold
+ForceStatus.BackgroundTransparency = 1
+ForceStatus.Parent = ControlsFrame
+
+-- Animación de entrada (slide + fade)
+local EntryTween = TweenService:Create(
+    MainFrame,
+    TweenInfo.new(0.9, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    {Position = UDim2.new(0.5, -200, 0.5, -110), BackgroundTransparency = 0.1}
+)
+MainFrame.Position = UDim2.new(0.5, -200, 0, -300)
+MainFrame.BackgroundTransparency = 1
+EntryTween:Play()
+
+-- SISTEMA DE ARRASTRE FUNCIONAL (GUI INDIVIDUAL)
+local dragging = false
+local dragInput, dragStart, startPos
+
+-- Función para actualizar posición durante arrastre
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(
+        startPos.X.Scale, 
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale, 
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+-- Conectar eventos de input para arrastre (ÁREA DEL TÍTULO)
+local function connectDragEvents(frame)
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+            
+            -- Efecto visual al agarrar
+            local GrabTween = TweenService:Create(
+                MainFrame,
+                TweenInfo.new(0.2),
+                {BackgroundTransparency = 0.05}
+            )
+            GrabTween:Play()
+            
+            -- Capturar el fin del arrastre
+            local connection
+            connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                    connection:Disconnect()
+                    
+                    -- Efecto visual al soltar
+                    local ReleaseTween = TweenService:Create(
+                        MainFrame,
+                        TweenInfo.new(0.2),
+                        {BackgroundTransparency = 0.1}
+                    )
+                    ReleaseTween:Play()
+                end
+            end)
+        end
+    end)
+    
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+end
+
+-- Conectar eventos de arrastre al área del título y al marco de arrastre
+connectDragEvents(DragArea)
+connectDragEvents(TitleLabel)
+
+-- Sistema de seguimiento de arrastre (NO AFECTA EL JUEGO)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input == dragInput) then
+        -- Solo mover la GUI, no afectar el juego
+        update(input)
+    end
+end)
+
+-- Función para cambiar estado visual (sin funcionalidad real)
+local function toggleIndicator(indicatorFrame, statusLabel, buttonName)
+    if indicatorFrame.BackgroundColor3 == Color3.fromRGB(255, 50, 50) then
+        -- Cambiar a activado (verde brillante)
+        indicatorFrame.BackgroundColor3 = Color3.fromRGB(50, 255, 100)
+        statusLabel.Text = "ACTIVE"
+        statusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
+        
+        -- Efecto de pulso al activar
+        local PulseTween = TweenService:Create(
+            indicatorFrame,
+            TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true),
+            {Size = UDim2.new(0, 22, 0, 22)}
+        )
+        PulseTween:Play()
+    else
+        -- Cambiar a desactivado (rojo)
+        indicatorFrame.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        statusLabel.Text = "OFFLINE"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+    end
+end
+
+-- Efectos hover para botones (SOLO visuales)
+FreezeButton.MouseEnter:Connect(function()
+    local HoverTween = TweenService:Create(
+        FreezeButton,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = Color3.fromRGB(50, 50, 80)}
+    )
+    HoverTween:Play()
+end)
+
+FreezeButton.MouseLeave:Connect(function()
+    local LeaveTween = TweenService:Create(
+        FreezeButton,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = Color3.fromRGB(40, 40, 60)}
+    )
+    LeaveTween:Play()
+end)
+
+ForceButton.MouseEnter:Connect(function()
+    local HoverTween = TweenService:Create(
+        ForceButton,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = Color3.fromRGB(50, 50, 80)}
+    )
+    HoverTween:Play()
+end)
+
+ForceButton.MouseLeave:Connect(function()
+    local LeaveTween = TweenService:Create(
+        ForceButton,
+        TweenInfo.new(0.2),
+        {BackgroundColor3 = Color3.fromRGB(40, 40, 60)}
+    )
+    LeaveTween:Play()
+end)
+
+-- Conectar botones a cambio visual
+FreezeButton.MouseButton1Click:Connect(function()
+    toggleIndicator(FreezeIndicator, FreezeStatus, "Freeze Trade")
+end)
+
+ForceButton.MouseButton1Click:Connect(function()
+    toggleIndicator(ForceIndicator, ForceStatus, "Force Accept")
+end)
+
+-- Efecto de brillo sutil en título
+local glowEffect = true
+spawn(function()
+    while glowEffect do
+        wait(2)
+        local GlowTween = TweenService:Create(
+            TitleLabel,
+            TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+            {TextColor3 = Color3.fromRGB(240, 200, 255)}
+        )
+        GlowTween:Play()
+        wait(1)
+        local GlowBackTween = TweenService:Create(
+            TitleLabel,
+            TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
+            {TextColor3 = Color3.fromRGB(220, 180, 255)}
+        )
+        GlowBackTween:Play()
+    end
+end)
+
+-- semen
