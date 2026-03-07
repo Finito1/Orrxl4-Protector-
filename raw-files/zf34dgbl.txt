@@ -1,0 +1,1 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Roman666Cabj/Cypher/refs/heads/main/Cypher%20Hub.lua.txt"))()
